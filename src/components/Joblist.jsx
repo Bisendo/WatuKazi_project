@@ -8,7 +8,7 @@ const JobList = () => {
       company: "Amazon",
       title: "Software Engineer",
       location: "San Francisco, CA",
-      salary: "$90K - $120K",
+      salary: "$90,000 - $120,000 / yr",
       level: "Mid-Level",
       type: "Full-time",
     },
@@ -17,32 +17,14 @@ const JobList = () => {
       company: "Facebook",
       title: "Product Manager",
       location: "Remote",
-      salary: "$110K - $140K",
+      salary: "$110,000 - $140,000 / yr",
       level: "Senior",
       type: "Full-time",
-    },
-    {
-      id: 3,
-      company: "Google",
-      title: "Frontend Developer",
-      location: "New York, NY",
-      salary: "$85K - $115K",
-      level: "Junior",
-      type: "Full-time",
-    },
-    {
-      id: 4,
-      company: "Microsoft",
-      title: "Data Analyst",
-      location: "Seattle, WA",
-      salary: "$100K - $130K",
-      level: "Mid-Level",
-      type: "Contract",
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:gap-6 max-w-6xl mx-auto">
+    <div className="space-y-4">
       {jobs.map((job) => (
         <JobCard key={job.id} job={job} />
       ))}

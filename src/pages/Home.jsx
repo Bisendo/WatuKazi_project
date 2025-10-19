@@ -1,5 +1,6 @@
 import React from "react";
 import Hero from "../components/Hero";
+import JobFilter from "../components/JobFillter";
 import JobList from "../components/Joblist";
 import Footer from "../components/Footer";
 
@@ -10,6 +11,7 @@ const Home = () => {
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-10">
         <div className="grid md:grid-cols-4 gap-6">
           <div className="col-span-1">
+            <JobFilter />
           </div>
           <div className="col-span-3">
             <JobList />
