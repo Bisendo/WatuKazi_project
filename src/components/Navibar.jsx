@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
+import logo from "../assets/watukazi.jpeg";
+
 import { 
   FaBell, 
   FaChevronDown, 
@@ -15,7 +17,6 @@ import {
   FaBuilding,
   FaStream
 } from "react-icons/fa";
-
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -101,26 +102,31 @@ const Navbar = () => {
           <div className="flex justify-between items-center h-14 sm:h-16 lg:h-20">
             
             {/* Logo Section */}
-            <div className="flex items-center flex-shrink-0">
-              <Link 
-                to="/" 
-                className="flex items-center space-x-2 sm:space-x-3 group"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <motion.div 
-                  whileHover={{ scale: 1.05 }}
-                  className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-blue-500/25 transition-all duration-300"
-                >
-                  <span className="text-white font-bold text-sm sm:text-lg">WK</span>
-                </motion.div>
-                <div className="flex flex-col">
-                  <span className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-700 bg-clip-text text-transparent">
-                    Watu Kazi
-                  </span>
-                  <span className="text-xs text-gray-500 -mt-1 hidden xs:block">Find Your Dream Job</span>
-                </div>
-              </Link>
-            </div>
+          <div className="flex items-center flex-shrink-0">
+  <Link 
+    to="/" 
+    className="flex items-center space-x-2 sm:space-x-3 group"
+    onClick={() => setIsMobileMenuOpen(false)}
+  >
+    <motion.div 
+      whileHover={{ scale: 1.05 }}
+      className="flex items-center justify-center"
+    >
+      {/* Logo Image - Replace '/logo.png' with your actual logo path */}
+      <img 
+        src={logo} 
+        alt="Watu Kazi Logo"
+        className="h-6 w-6 xs:h-7 xs:w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 lg:h-10 lg:w-10 xl:h-11 xl:w-11 transition-all duration-300 object-contain rounded-full"
+      />
+    </motion.div>
+    <div className="flex flex-col">
+      <span className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-700 bg-clip-text text-transparent">
+        Watu Kazi
+      </span>
+      <span className="text-xs text-gray-500 -mt-1 hidden xs:block">Find Your Dream Job</span>
+    </div>
+  </Link>
+</div>
 
             {/* Desktop Navigation - Show on lg screens and up */}
             <div className="hidden lg:flex items-center space-x-1 xl:space-x-2 mx-4 xl:mx-8">
@@ -433,18 +439,6 @@ const Navbar = () => {
                   <span className="font-medium">Notifications ({unreadCount})</span>
                 </button>
                 
-                <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-3 sm:pt-4">
-                  <button className="py-2 sm:py-3 px-3 sm:px-4 text-gray-700 font-medium border border-gray-200 rounded-lg sm:rounded-xl hover:border-blue-500 hover:text-blue-600 transition-all duration-200 text-sm sm:text-base">
-                    Login
-                  </button>
-                  <button className="py-2 sm:py-3 px-3 sm:px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg sm:rounded-xl shadow-lg shadow-blue-500/25 transition-all duration-200 text-sm sm:text-base">
-                    Sign Up
-                  </button>
-                </div>
-                
-                <button className="w-full py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-lg sm:rounded-xl shadow-lg shadow-blue-500/25 transition-all duration-200 text-sm sm:text-base mt-3 sm:mt-4">
-                  Post a Job Free
-                </button>
               </div>
             </motion.div>
           </>

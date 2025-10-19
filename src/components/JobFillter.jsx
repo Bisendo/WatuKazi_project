@@ -41,7 +41,7 @@ const JobFilter = () => {
         <p className="text-sm text-gray-500 dark:text-gray-300">
           Let AI apply for jobs automatically on your behalf.
         </p>
-        <button className="mt-3 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-full text-sm">
+        <button className="mt-3 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full text-sm">
           Try Now
         </button>
       </div>

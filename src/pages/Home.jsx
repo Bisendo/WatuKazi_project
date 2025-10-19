@@ -10,11 +10,12 @@ const Home = () => {
       <Hero />
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-10">
         <div className="grid md:grid-cols-4 gap-6">
-          <div className="col-span-1">
-            <JobFilter />
-          </div>
-          <div className="col-span-3">
+          <div className="col-span-6">
             <JobList />
+
+          </div>
+          <div className="col-span-6">
+            <JobFilter />
           </div>
         </div>
       </div>

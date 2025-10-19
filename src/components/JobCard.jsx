@@ -16,9 +16,9 @@ const JobCard = ({ job }) => {
         </div>
       </div>
       <div className="text-right mt-3 md:mt-0">
-        <p className="text-orange-500 font-semibold">{job.salary}</p>
+        <p className="text-blue-500 font-semibold">{job.salary}</p>
         <p className="text-sm">{job.type} • {job.level}</p>
-        <button className="mt-3 bg-orange-500 hover:bg-orange-600 text-white py-2 px-5 rounded-full transition">
+        <button className="mt-3 bg-blue-500 hover:bg-blue-600 text-white py-2 px-5 rounded-full transition">
           Apply
         </button>
       </div>
