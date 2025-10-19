@@ -10,7 +10,7 @@ import Navibar from "./components/Navibar";
 import AnimationWrapper from "./components/AnimationWrapper";
 import Footer from "./components/Footer";
 import SignUpForm from "./components/SignUpToWatukazi";
-import LoginForm from "./components/LoginToWatuKazi";
+import LoginForm from "./components/SignInToWatukazi";
 
 const App = () => {
 
@@ -28,7 +28,7 @@ const App = () => {
         <Route path="/animations" element={<AnimationWrapper />} />
         <Route path="/footer" element={<Footer />} />
         <Route path="/signup" element={<SignUpForm />} />
-        <Route path="/login" element={<LoginForm/>} />
+        <Route path="/Signin" element={<LoginForm/>} />
 
 
       </Routes>

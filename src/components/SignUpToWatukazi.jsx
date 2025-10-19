@@ -348,8 +348,8 @@ const SignupForm = () => {
                 onClick={prevStep}
                 className={`flex items-center px-6 py-3 rounded-xl font-semibold transition-all ${
                   step === 1 
-                    ? 'bg-orange-500 text-white cursor-not-allowed' 
-                    : 'bg-orange-500 text-white hover:bg-gray-600'
+                    ? 'bg-blue-500 text-white cursor-not-allowed' 
+                    : 'bg-blue-500 text-white hover:bg-gray-600'
                 }`}
                 disabled={step === 1}
               >
@@ -362,7 +362,7 @@ const SignupForm = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   type="submit"
-                  className="flex items-center px-8 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-xl font-semibold hover:shadow-xl transition-all duration-300"
+                  className="flex items-center px-8 py-3 bg-gradient-to-r from-blue-500 to-blue-500 text-white rounded-xl font-semibold hover:shadow-xl transition-all duration-300"
                 >
                   Create Account
                   <FaCheck className="ml-2" />
@@ -373,7 +373,7 @@ const SignupForm = () => {
                   whileTap={{ scale: 0.95 }}
                   type="button"
                   onClick={nextStep}
-                  className="flex items-center px-8 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl font-semibold hover:shadow-xl transition-all duration-300"
+                  className="flex items-center px-8 py-3 bg-gradient-to-r from-blue-500 to-blue-500 text-white rounded-xl font-semibold hover:shadow-xl transition-all duration-300"
                 >
                   Next
                   <FaArrowRight className="ml-2" />
@@ -392,8 +392,8 @@ const SignupForm = () => {
             <p className="text-gray-600 dark:text-gray-300 text-sm">
               Already have an account?{" "}
               <Link
-                to="/login"
-                className="text-green-500 hover:text-green-600 dark:text-green-400 font-semibold transition-colors"
+                to="/signin"
+                className="text-blue-500 hover:text-blue-600 dark:text-blue-400 font-semibold transition-colors"
               >
                 Sign in
               </Link>
