@@ -12,8 +12,10 @@ import {
   FaTools,
   FaArrowRight,
   FaArrowLeft,
-  FaCheck 
+  FaCheck,
+  FaGlobe
 } from "react-icons/fa";
+import { useLanguage } from "../components/LanguageContext"; // Import the language context
 
 const SignupForm = () => {
   const [step, setStep] = useState(1);
@@ -34,10 +36,95 @@ const SignupForm = () => {
     confirmPassword: ""
   });
 
+  // Use language context
+  const { language, toggleLanguage } = useLanguage();
+
+  // Language content for SignupForm
+  const signupContent = {
+    sw: {
+      // General
+      createAccount: "Fungua Akaunti",
+      alreadyHaveAccount: "Tayari una akaunti?",
+      signIn: "Ingia",
+      // Steps
+      basicInfo: "Taarifa za Msingi",
+      personalDetails: "Taarifa Binafsi",
+      security: "Usalama",
+      // Step 1
+      findWork: "Tafuta Kazi",
+      offerService: "Toa Huduma",
+      firstName: "Jina la Kwanza",
+      lastName: "Jina la Mwisho",
+      email: "Barua Pepe",
+      emailOptional: "(Hiari)",
+      phoneNumber: "Namba ya Simu",
+      // Step 2
+      gender: "Jinsia",
+      male: "Mwanaume",
+      female: "Mwanamke",
+      other: "Nyingine",
+      dateOfBirth: "Tarehe ya Kuzaliwa",
+      // Step 3
+      password: "Nenosiri",
+      confirmPassword: "Thibitisha Nenosiri",
+      createPassword: "Tengeneza nenosiri",
+      confirmYourPassword: "Thibitisha nenosiri lako",
+      // Buttons
+      back: "Nyuma",
+      next: "Endelea",
+      createAccountBtn: "Fungua Akaunti",
+      // Placeholders
+      firstNamePlaceholder: "Jina",
+      lastNamePlaceholder: "Jina la Ukoo",
+      emailPlaceholder: "barua@pepe.com",
+      phonePlaceholder: "+255 123 456 789"
+    },
+    en: {
+      // General
+      createAccount: "Create Account",
+      alreadyHaveAccount: "Already have an account?",
+      signIn: "Sign in",
+      // Steps
+      basicInfo: "Basic Info",
+      personalDetails: "Personal Details",
+      security: "Security",
+      // Step 1
+      findWork: "Find Work",
+      offerService: "Offer Service",
+      firstName: "First Name",
+      lastName: "Last Name",
+      email: "Email",
+      emailOptional: "(Optional)",
+      phoneNumber: "Phone Number",
+      // Step 2
+      gender: "Gender",
+      male: "Male",
+      female: "Female",
+      other: "Other",
+      dateOfBirth: "Date of Birth",
+      // Step 3
+      password: "Password",
+      confirmPassword: "Confirm Password",
+      createPassword: "Create a password",
+      confirmYourPassword: "Confirm your password",
+      // Buttons
+      back: "Back",
+      next: "Next",
+      createAccountBtn: "Create Account",
+      // Placeholders
+      firstNamePlaceholder: "John",
+      lastNamePlaceholder: "Doe",
+      emailPlaceholder: "your@email.com",
+      phonePlaceholder: "+1 234 567 8900"
+    }
+  };
+
+  const t = signupContent[language];
+
   const steps = [
-    { number: 1, title: "Basic Info", icon: <FaUser /> },
-    { number: 2, title: "Personal Details", icon: <FaVenusMars /> },
-    { number: 3, title: "Security", icon: <FaLock /> }
+    { number: 1, title: t.basicInfo, icon: <FaUser /> },
+    { number: 2, title: t.personalDetails, icon: <FaVenusMars /> },
+    { number: 3, title: t.security, icon: <FaLock /> }
   ];
 
   const handleChange = (e) => {
@@ -71,6 +158,21 @@ const SignupForm = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
+        
+        {/* Language Toggle - Floating */}
+        <motion.button
+          onClick={toggleLanguage}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          className="fixed top-4 right-4 p-2 rounded-full bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 transition-all duration-200 border border-gray-200 dark:border-gray-700 shadow-lg z-10"
+          aria-label={language === 'sw' ? "Switch to English" : "Badilisha lugha kwa Kiswahili"}
+        >
+          <div className="flex items-center gap-1">
+            <FaGlobe className="w-3 h-3" />
+            <span className="text-xs font-medium">{language === 'sw' ? 'EN' : 'SW'}</span>
+          </div>
+        </motion.button>
+
         {/* Card Container */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -122,7 +224,7 @@ const SignupForm = () => {
               animate={{ opacity: 1, y: 0 }}
               className="text-3xl font-bold text-gray-800 dark:text-white mb-2"
             >
-              Create Account
+              {t.createAccount}
             </motion.h1>
             <motion.p
               initial={{ opacity: 0 }}
@@ -160,7 +262,7 @@ const SignupForm = () => {
                         }`}
                       >
                         <FaBriefcase className="mx-auto mb-2 text-lg" />
-                        <span className="text-sm font-medium">Find Work</span>
+                        <span className="text-sm font-medium">{t.findWork}</span>
                       </button>
                       <button
                         type="button"
@@ -172,7 +274,7 @@ const SignupForm = () => {
                         }`}
                       >
                         <FaTools className="mx-auto mb-2 text-lg" />
-                        <span className="text-sm font-medium">Offer Service</span>
+                        <span className="text-sm font-medium">{t.offerService}</span>
                       </button>
                     </div>
 
@@ -180,7 +282,7 @@ const SignupForm = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          First Name
+                          {t.firstName}
                         </label>
                         <input
                           type="text"
@@ -188,13 +290,13 @@ const SignupForm = () => {
                           value={formData.firstName}
                           onChange={handleChange}
                           className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 dark:text-white"
-                          placeholder="John"
+                          placeholder={t.firstNamePlaceholder}
                           required
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Last Name
+                          {t.lastName}
                         </label>
                         <input
                           type="text"
@@ -202,7 +304,7 @@ const SignupForm = () => {
                           value={formData.lastName}
                           onChange={handleChange}
                           className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 dark:text-white"
-                          placeholder="Doe"
+                          placeholder={t.lastNamePlaceholder}
                           required
                         />
                       </div>
@@ -211,7 +313,7 @@ const SignupForm = () => {
                     {/* Email (Optional) */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Email <span className="text-gray-400 text-xs">(Optional)</span>
+                        {t.email} <span className="text-gray-400 text-xs">{t.emailOptional}</span>
                       </label>
                       <div className="relative">
                         <FaEnvelope className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
@@ -221,7 +323,7 @@ const SignupForm = () => {
                           value={formData.email}
                           onChange={handleChange}
                           className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 dark:text-white"
-                          placeholder="your@email.com"
+                          placeholder={t.emailPlaceholder}
                         />
                       </div>
                     </div>
@@ -229,7 +331,7 @@ const SignupForm = () => {
                     {/* Phone Number */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Phone Number
+                        {t.phoneNumber}
                       </label>
                       <div className="relative">
                         <FaPhone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
@@ -239,7 +341,7 @@ const SignupForm = () => {
                           value={formData.phoneNumber}
                           onChange={handleChange}
                           className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 dark:text-white"
-                          placeholder="+1 234 567 8900"
+                          placeholder={t.phonePlaceholder}
                           required
                         />
                       </div>
@@ -253,22 +355,26 @@ const SignupForm = () => {
                     {/* Gender Selection */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Gender
+                        {t.gender}
                       </label>
                       <div className="grid grid-cols-3 gap-3">
-                        {['Male', 'Female', 'Other'].map((gender) => (
+                        {[
+                          { value: 'male', label: t.male },
+                          { value: 'female', label: t.female },
+                          { value: 'other', label: t.other }
+                        ].map((gender) => (
                           <button
-                            key={gender}
+                            key={gender.value}
                             type="button"
-                            onClick={() => handleChange({ target: { name: 'gender', value: gender.toLowerCase() } })}
+                            onClick={() => handleChange({ target: { name: 'gender', value: gender.value } })}
                             className={`p-3 border-2 rounded-xl text-center transition-all duration-200 ${
-                              formData.gender === gender.toLowerCase()
+                              formData.gender === gender.value
                                 ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300'
                                 : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
                             }`}
                           >
                             <FaVenusMars className="mx-auto mb-1" />
-                            <span className="text-xs font-medium">{gender}</span>
+                            <span className="text-xs font-medium">{gender.label}</span>
                           </button>
                         ))}
                       </div>
@@ -277,7 +383,7 @@ const SignupForm = () => {
                     {/* Date of Birth */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Date of Birth
+                        {t.dateOfBirth}
                       </label>
                       <div className="relative">
                         <FaCalendarAlt className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
@@ -300,7 +406,7 @@ const SignupForm = () => {
                     {/* Password */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Password
+                        {t.password}
                       </label>
                       <div className="relative">
                         <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
@@ -310,7 +416,7 @@ const SignupForm = () => {
                           value={formData.password}
                           onChange={handleChange}
                           className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 dark:text-white"
-                          placeholder="Create a password"
+                          placeholder={t.createPassword}
                           required
                         />
                       </div>
@@ -319,7 +425,7 @@ const SignupForm = () => {
                     {/* Confirm Password */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Confirm Password
+                        {t.confirmPassword}
                       </label>
                       <div className="relative">
                         <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
@@ -329,7 +435,7 @@ const SignupForm = () => {
                           value={formData.confirmPassword}
                           onChange={handleChange}
                           className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 dark:text-white"
-                          placeholder="Confirm your password"
+                          placeholder={t.confirmYourPassword}
                           required
                         />
                       </div>
@@ -348,13 +454,13 @@ const SignupForm = () => {
                 onClick={prevStep}
                 className={`flex items-center px-6 py-3 rounded-xl font-semibold transition-all ${
                   step === 1 
-                    ? 'bg-blue-500 text-white cursor-not-allowed' 
-                    : 'bg-blue-500 text-white hover:bg-gray-600'
+                    ? 'bg-gray-400 text-white cursor-not-allowed' 
+                    : 'bg-blue-500 text-white hover:bg-blue-600'
                 }`}
                 disabled={step === 1}
               >
                 <FaArrowLeft className="mr-2" />
-                Back
+                {t.back}
               </motion.button>
 
               {step === 3 ? (
@@ -362,9 +468,9 @@ const SignupForm = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   type="submit"
-                  className="flex items-center px-8 py-3 bg-gradient-to-r from-blue-500 to-blue-500 text-white rounded-xl font-semibold hover:shadow-xl transition-all duration-300"
+                  className="flex items-center px-8 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:shadow-xl transition-all duration-300"
                 >
-                  Create Account
+                  {t.createAccountBtn}
                   <FaCheck className="ml-2" />
                 </motion.button>
               ) : (
@@ -373,9 +479,9 @@ const SignupForm = () => {
                   whileTap={{ scale: 0.95 }}
                   type="button"
                   onClick={nextStep}
-                  className="flex items-center px-8 py-3 bg-gradient-to-r from-blue-500 to-blue-500 text-white rounded-xl font-semibold hover:shadow-xl transition-all duration-300"
+                  className="flex items-center px-8 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:shadow-xl transition-all duration-300"
                 >
-                  Next
+                  {t.next}
                   <FaArrowRight className="ml-2" />
                 </motion.button>
               )}
@@ -390,12 +496,12 @@ const SignupForm = () => {
             className="text-center mt-6 pt-6 border-t border-gray-200 dark:border-gray-600"
           >
             <p className="text-gray-600 dark:text-gray-300 text-sm">
-              Already have an account?{" "}
+              {t.alreadyHaveAccount}{" "}
               <Link
                 to="/signin"
-                className="text-blue-500 hover:text-blue-600 dark:text-blue-400 font-semibold transition-colors"
+                className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 font-semibold transition-colors"
               >
-                Sign in
+                {t.signIn}
               </Link>
             </p>
           </motion.div>

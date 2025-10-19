@@ -11,6 +11,7 @@ import AnimationWrapper from "./components/AnimationWrapper";
 import Footer from "./components/Footer";
 import SignUpForm from "./components/SignUpToWatukazi";
 import LoginForm from "./components/SignInToWatukazi";
+import { LanguageProvider } from "./components/LanguageContext";
 
 const App = () => {
 
@@ -19,6 +20,7 @@ const App = () => {
 
   return (
     <div>
+      <LanguageProvider>
       <Navibar />
       <Routes>
         <Route path="/" element={<Home />} />
@@ -32,6 +34,7 @@ const App = () => {
 
 
       </Routes>
+      </LanguageProvider>
     </div>
   );
 };
