@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "react-router-dom";
-import { FaPhone, FaLock, FaGoogle, FaApple, FaSignInAlt, FaEye, FaEyeSlash, FaGlobe } from "react-icons/fa";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import axios from "axios";
+import { FaPhone, FaLock, FaGoogle, FaApple, FaSignInAlt, FaEye, FaEyeSlash, FaGlobe, FaExclamationCircle, FaSpinner } from "react-icons/fa";
 import { useLanguage } from "../components/LanguageContext";
 
 const LoginForm = () => {
@@ -13,6 +14,11 @@ const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  
+  const navigate = useNavigate();
+  const location = useLocation();
   
   // Get language from context
   const { language, toggleLanguage } = useLanguage();
@@ -30,11 +36,18 @@ const LoginForm = () => {
       rememberMe: "Nikumbuke",
       forgotPassword: "Umesahau nenosiri?",
       signIn: "Ingia",
+      signingIn: "Inaingiza...",
       orContinue: "Au ingia kwa",
       noAccount: "Huna akaunti?",
       signUp: "Jisajili",
       google: "Google",
-      apple: "Apple"
+      apple: "Apple",
+      // Error messages
+      fillAllFields: "Tafadhali jaza namba ya simu na nenosiri",
+      invalidCredentials: "Namba ya simu au nenosiri si sahihi",
+      networkError: "Hitilafu ya mtandao. Tafadhali angalia muunganisho wako",
+      somethingWentWrong: "Kuna hitilafu imetokea, tafadhali jaribu tena",
+      loginSuccess: "Umefanikiwa kuingia!"
     },
     en: {
       welcome: "Welcome Back",
@@ -47,15 +60,30 @@ const LoginForm = () => {
       rememberMe: "Remember me",
       forgotPassword: "Forgot password?",
       signIn: "Sign In",
+      signingIn: "Signing in...",
       orContinue: "Or continue with",
       noAccount: "Don't have an account?",
       signUp: "Sign up",
       google: "Google",
-      apple: "Apple"
+      apple: "Apple",
+      // Error messages
+      fillAllFields: "Please fill in phone number and password",
+      invalidCredentials: "Invalid phone number or password",
+      networkError: "Network error. Please check your connection",
+      somethingWentWrong: "Something went wrong, please try again",
+      loginSuccess: "Login successful!"
     }
   };
 
   const t = content[language];
+
+  // Check for success message from signup
+  useEffect(() => {
+    if (location.state?.message) {
+      // You can show a success message here if needed
+      console.log(location.state.message);
+    }
+  }, [location.state]);
 
   // Initialize dark mode from localStorage
   useEffect(() => {
@@ -70,6 +98,16 @@ const LoginForm = () => {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
+    }
+
+    // Check for remembered phone number
+    const rememberedPhone = localStorage.getItem('rememberedPhone');
+    if (rememberedPhone) {
+      setFormData(prev => ({
+        ...prev,
+        phone: rememberedPhone,
+        rememberMe: true
+      }));
     }
   }, []);
 
@@ -91,12 +129,95 @@ const LoginForm = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+    
+    // Clear error when user starts typing
+    if (error) setError("");
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Login submitted:", formData);
-    // Handle login logic here
+    
+    // Basic validation
+    if (!formData.phone || !formData.password) {
+      setError(t.fillAllFields);
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      // Prepare data for backend
+      const loginData = {
+        phoneNumber: formData.phone.replace(/\D/g, ''), // Remove formatting for backend
+        password: formData.password
+      };
+
+      // Use environment variable with fallback
+      const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+      
+      console.log("Attempting login to:", `${API_URL}/auth/login`);
+
+      const response = await axios.post(`${API_URL}/auth/login`, loginData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000,
+      });
+
+      console.log("Login successful:", response.data);
+
+      // Store remember me phone if checked
+      if (formData.rememberMe) {
+        localStorage.setItem('rememberedPhone', formData.phone);
+      } else {
+        localStorage.removeItem('rememberedPhone');
+      }
+
+      // Store authentication token
+      if (response.data.token) {
+        localStorage.setItem('authToken', response.data.token);
+        localStorage.setItem('userData', JSON.stringify(response.data.user));
+      }
+
+      // Show success message
+      setError(""); // Clear any errors
+      
+      // Navigate to dashboard after successful login
+      setTimeout(() => {
+        navigate("/dashboard", { 
+          replace: true,
+          state: { 
+            user: response.data.user,
+            message: t.loginSuccess
+          }
+        });
+      }, 1000);
+
+    } catch (err) {
+      console.error("Login error:", err);
+      
+      // Handle different error scenarios
+      if (err.response) {
+        // Server responded with error status
+        if (err.response.status === 401) {
+          setError(t.invalidCredentials);
+        } else if (err.response.status === 404) {
+          setError(t.invalidCredentials);
+        } else {
+          const errorMessage = err.response.data?.message || err.response.data?.error || t.somethingWentWrong;
+          setError(errorMessage);
+        }
+      } else if (err.request) {
+        // Request was made but no response received
+        setError(t.networkError);
+      } else {
+        // Something else happened
+        setError(t.somethingWentWrong);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const togglePasswordVisibility = () => {
@@ -122,6 +243,17 @@ const LoginForm = () => {
       ...prev,
       phone: formattedPhone
     }));
+  };
+
+  // Handle social login (placeholder functions)
+  const handleGoogleLogin = async () => {
+    console.log("Google login clicked");
+    // Implement Google OAuth here
+  };
+
+  const handleAppleLogin = async () => {
+    console.log("Apple login clicked");
+    // Implement Apple OAuth here
   };
 
   if (!isMounted) {
@@ -153,6 +285,7 @@ const LoginForm = () => {
             whileTap={{ scale: 0.9 }}
             className="p-2 rounded-full bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 transition-all duration-200 border border-gray-200 dark:border-gray-700 shadow-lg"
             aria-label={language === 'sw' ? "Switch to English" : "Badilisha lugha kwa Kiswahili"}
+            disabled={loading}
           >
             <div className="flex items-center gap-1">
               <FaGlobe className="w-3 h-3" />
@@ -167,6 +300,7 @@ const LoginForm = () => {
             whileTap={{ scale: 0.9 }}
             className="p-2 rounded-full bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 transition-all duration-200 border border-gray-200 dark:border-gray-700 shadow-lg"
             aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+            disabled={loading}
           >
             {isDarkMode ? (
               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -215,6 +349,18 @@ const LoginForm = () => {
             </motion.p>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-3"
+            >
+              <FaExclamationCircle className="text-red-500 flex-shrink-0 text-sm" />
+              <p className="text-red-700 dark:text-red-300 text-xs">{error}</p>
+            </motion.div>
+          )}
+
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Phone Field */}
@@ -237,6 +383,7 @@ const LoginForm = () => {
                   placeholder={t.phonePlaceholder}
                   maxLength="14"
                   required
+                  disabled={loading}
                 />
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -263,11 +410,13 @@ const LoginForm = () => {
                   className="w-full pl-10 pr-10 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm"
                   placeholder={t.passwordPlaceholder}
                   required
+                  disabled={loading}
                 />
                 <button
                   type="button"
                   onClick={togglePasswordVisibility}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200"
+                  disabled={loading}
                 >
                   {showPassword ? <FaEyeSlash className="text-xs" /> : <FaEye className="text-xs" />}
                 </button>
@@ -288,6 +437,7 @@ const LoginForm = () => {
                   checked={formData.rememberMe}
                   onChange={handleChange}
                   className="w-3 h-3 text-blue-500 rounded focus:ring-blue-400 border-gray-300 dark:border-gray-600"
+                  disabled={loading}
                 />
                 <span className="text-gray-600 dark:text-gray-300">{t.rememberMe}</span>
               </label>
@@ -304,13 +454,23 @@ const LoginForm = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              whileHover={{ scale: loading ? 1 : 1.02 }}
+              whileTap={{ scale: loading ? 1 : 0.98 }}
               type="submit"
-              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 rounded-lg font-semibold shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 hover:from-blue-600 hover:to-blue-700 text-sm"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 rounded-lg font-semibold shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 hover:from-blue-600 hover:to-blue-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <FaSignInAlt className="text-xs" />
-              {t.signIn}
+              {loading ? (
+                <>
+                  <FaSpinner className="animate-spin text-xs" />
+                  {t.signingIn}
+                </>
+              ) : (
+                <>
+                  <FaSignInAlt className="text-xs" />
+                  {t.signIn}
+                </>
+              )}
             </motion.button>
           </form>
 
@@ -340,7 +500,9 @@ const LoginForm = () => {
               type="button"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="flex items-center justify-center gap-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-300 dark:border-gray-600 py-2 px-3 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-300 text-xs"
+              onClick={handleGoogleLogin}
+              disabled={loading}
+              className="flex items-center justify-center gap-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-300 dark:border-gray-600 py-2 px-3 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-300 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FaGoogle className="text-red-500 text-xs" />
               <span>{t.google}</span>
@@ -349,7 +511,9 @@ const LoginForm = () => {
               type="button"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="flex items-center justify-center gap-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-300 dark:border-gray-600 py-2 px-3 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-300 text-xs"
+              onClick={handleAppleLogin}
+              disabled={loading}
+              className="flex items-center justify-center gap-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-300 dark:border-gray-600 py-2 px-3 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-300 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FaApple className="text-gray-800 dark:text-white text-xs" />
               <span>{t.apple}</span>

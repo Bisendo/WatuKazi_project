@@ -12,9 +12,11 @@ import Footer from "./components/Footer";
 import SignUpForm from "./components/SignUpToWatukazi";
 import LoginForm from "./components/SignInToWatukazi";
 import { LanguageProvider } from "./components/LanguageContext";
+import { ThemeProvider } from "./components/ThemeContext";
 import Service from "./components/Service";
 import ContactPage from "./components/Contacts";
 import AboutUs from "./components/AboutUs";
+
 
 const App = () => {
 
@@ -23,6 +25,7 @@ const App = () => {
 
   return (
     <div>
+      <ThemeProvider>
       <LanguageProvider>
         <Navibar />
         <Routes>
@@ -45,6 +48,7 @@ const App = () => {
 
         </Routes>
       </LanguageProvider>
+      </ThemeProvider>
     </div>
   );
 };

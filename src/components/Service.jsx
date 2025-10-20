@@ -1,308 +1,362 @@
 // src/components/ServiceCard.jsx
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Code, 
-  Palette, 
-  Smartphone, 
-  Zap, 
-  Shield, 
-  Cloud,
-  ArrowRight,
-  CheckCircle,
-  Star,
-  Globe,
-  Clock,
-  Users,
-  Calendar,
-  Tag,
-  MessageCircle,
-  ThumbsUp,
-  Eye,
-  ShoppingCart,
-  Heart,
   Search,
   Filter,
-  X,
-  SlidersHorizontal,
+  MapPin,
+  Star,
+  Heart,
+  Eye,
+  Clock,
+  Verified,
+  Shield,
+  Calendar,
+  MessageCircle,
+  Phone,
+  Share2,
+  Flag,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  X,
+  Sparkles,
+  Zap,
+  Users,
+  ThumbsUp,
+  Award,
+  BadgeCheck,
+  ShoppingCart,
+  ArrowRight,
+  CheckCircle
 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../components/LanguageContext';
-import { useState, useEffect } from 'react';
 
 const Service = () => {
-  const { language, toggleLanguage } = useLanguage();
-  const [likedCards, setLikedCards] = useState({});
+  const { language } = useLanguage();
+  const [services, setServices] = useState([]);
+  const [filteredServices, setFilteredServices] = useState([]);
+  const [selectedService, setSelectedService] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('featured');
+  const [loading, setLoading] = useState(true);
+  const [favorites, setFavorites] = useState(new Set());
+  const [viewedServices, setViewedServices] = useState(new Set());
+
+  // Filters state
   const [filters, setFilters] = useState({
     category: 'all',
-    priceRange: [0, 2000],
-    status: 'all',
+    priceRange: [0, 5000],
+    location: 'all',
     rating: 0,
-    deliveryTime: 30
+    deliveryTime: 30,
+    sellerType: 'all'
   });
-  const [expandedFilters, setExpandedFilters] = useState({
-    category: true,
-    price: true,
-    status: true,
-    rating: true,
-    delivery: true
-  });
+
+  const modalRef = useRef(null);
 
   // Translation dictionary
   const translations = {
     en: {
-      ourServices: "Our Services",
-      whatWeOffer: "What We Offer",
-      description: "Comprehensive digital solutions tailored to elevate your business and drive meaningful results.",
-      learnMore: "Learn More",
-      viewAllServices: "View All Services",
-      features: "Features",
-      pricing: "Pricing",
-      startingFrom: "Starting from",
-      perMonth: "/month",
-      projects: "projects",
-      status: "Status",
-      available: "Available",
-      limited: "Limited",
-      booked: "Booked",
-      requests: "Requests",
+      searchPlaceholder: "Search for services...",
+      filterTitle: "Filters",
+      sortBy: "Sort by",
+      categories: "Categories",
+      priceRange: "Price Range",
+      location: "Location",
+      rating: "Minimum Rating",
+      deliveryTime: "Delivery Time",
+      sellerType: "Seller Type",
+      allCategories: "All Categories",
+      allLocations: "All Locations",
+      allSellers: "All Sellers",
+      featured: "Featured",
+      newest: "Newest",
+      priceLow: "Price: Low to High",
+      priceHigh: "Price: High to Low",
+      rating: "Highest Rated",
+      popular: "Most Popular",
+      clearFilters: "Clear All",
+      applyFilters: "Apply Filters",
+      servicesFound: "services found",
+      contactSeller: "Contact Seller",
       viewDetails: "View Details",
-      addToCart: "Add to Cart",
-      popular: "Popular",
-      new: "New",
-      discount: "Discount",
+      addToFavorites: "Add to Favorites",
+      removeFromFavorites: "Remove from Favorites",
+      verifiedSeller: "Verified Seller",
+      topRated: "Top Rated",
+      fastDelivery: "Fast Delivery",
+      online: "Online",
+      available: "Available",
+      limited: "Limited Spots",
+      booked: "Fully Booked",
       delivery: "Delivery",
       days: "days",
-      clients: "clients",
-      satisfaction: "Satisfaction",
-      viewAll: "View All",
-      webDevelopment: "Web Development",
-      uiuxDesign: "UI/UX Design",
-      mobileApps: "Mobile Apps",
-      performanceOptimization: "Performance Optimization",
-      securityAudit: "Security Audit",
-      cloudSolutions: "Cloud Solutions",
-      searchPlaceholder: "Search services...",
-      filterTitle: "Filters",
-      category: "Category",
-      allCategories: "All Categories",
-      priceRange: "Price Range",
-      statusFilter: "Availability",
-      allStatus: "All Status",
-      ratingFilter: "Minimum Rating",
-      deliveryTimeFilter: "Max Delivery Time",
-      clearFilters: "Clear Filters",
-      applyFilters: "Apply Filters",
-      results: "results",
-      showing: "Showing",
-      of: "of",
-      sortBy: "Sort by",
-      sortOptions: {
-        featured: "Featured",
-        priceLow: "Price: Low to High",
-        priceHigh: "Price: High to Low",
-        rating: "Highest Rated",
-        delivery: "Fastest Delivery"
-      }
+      rating: "Rating",
+      reviews: "reviews",
+      startingFrom: "Starting from",
+      negotiable: "Negotiable",
+      featuredServices: "Featured Services",
+      recentServices: "Recent Services",
+      popularServices: "Popular Services",
+      similarServices: "Similar Services",
+      serviceDetails: "Service Details",
+      description: "Description",
+      whatIncluded: "What's Included",
+      sellerInfo: "Seller Information",
+      contactOptions: "Contact Options",
+      shareService: "Share Service",
+      reportService: "Report Service",
+      viewAll: "View All Services"
     },
     sw: {
-      ourServices: "Huduma Zetu",
-      whatWeOffer: "Tunatoa Nini",
-      description: "Suluhisho za kidijitali zilizoboreshwa kuinua biashara yaku na kukuza matokeo mazuri.",
-      learnMore: "Jifunze Zaidi",
-      viewAllServices: "Tazama Huduma Zote",
-      features: "Vipengele",
-      pricing: "Bei",
-      startingFrom: "Kuanzia",
-      perMonth: "/mwezi",
-      projects: "miradi",
-      status: "Hali",
-      available: "Inapatikana",
-      limited: "Imeachwa Kidogo",
-      booked: "Imechukuliwa",
-      requests: "Maombi",
-      viewDetails: "Angalia Maelezo",
-      addToCart: "Weka kwenye Cart",
-      popular: "Maarufu",
-      new: "Mpya",
-      discount: "Punguzo",
-      delivery: "Uwasilishaji",
-      days: "siku",
-      clients: "wateja",
-      satisfaction: "Uridhika",
-      viewAll: "Tazama Zote",
-      webDevelopment: "Ukuzaji wa Tovuti",
-      uiuxDesign: "Ubunifu wa UI/UX",
-      mobileApps: "Programu za Rununu",
-      performanceOptimization: "Uboreshaji wa Utendaji",
-      securityAudit: "Ukaguzi wa Usalama",
-      cloudSolutions: "Suluhisho za Wingu",
       searchPlaceholder: "Tafuta huduma...",
       filterTitle: "Vichujio",
-      category: "Kategoria",
-      allCategories: "Kategoria Zote",
-      priceRange: "Mbalimbali ya Bei",
-      statusFilter: "Upataji",
-      allStatus: "Hali Zote",
-      ratingFilter: "Ukadiriaji wa Chini",
-      deliveryTimeFilter: "Muda wa Uwasilishaji",
-      clearFilters: "Futa Vichujio",
-      applyFilters: "Weka Vichujio",
-      results: "matokeo",
-      showing: "Inaonyesha",
-      of: "ya",
       sortBy: "Panga kwa",
-      sortOptions: {
-        featured: "Ilivyopendekezwa",
-        priceLow: "Bei: Chini hadi Juu",
-        priceHigh: "Bei: Juu hadi Chini",
-        rating: "Iliyopewa kiwango cha juu",
-        delivery: "Uwasilishaji wa Haraka"
-      }
+      categories: "Kategoria",
+      priceRange: "Mbalimbali ya Bei",
+      location: "Eneo",
+      rating: "Ukadiriaji wa Chini",
+      deliveryTime: "Muda wa Uwasilishaji",
+      sellerType: "Aina ya Muuzaji",
+      allCategories: "Kategoria Zote",
+      allLocations: "Maeneo Yote",
+      allSellers: "Wauzaji Wote",
+      featured: "Ilivyopendekezwa",
+      newest: "Mpya Zaidi",
+      priceLow: "Bei: Chini hadi Juu",
+      priceHigh: "Bei: Juu hadi Chini",
+      rating: "Iliyopewa kiwango cha juu",
+      popular: "Maarufu Zaidi",
+      clearFilters: "Futa Yote",
+      applyFilters: "Weka Vichujio",
+      servicesFound: "huduma zilizopatikana",
+      contactSeller: "Wasiliana na Muuzaji",
+      viewDetails: "Angalia Maelezo",
+      addToFavorites: "Ongeza kwa Vipendwa",
+      removeFromFavorites: "Ondoa kwa Vipendwa",
+      verifiedSeller: "Muuzaji Aliyethibitishwa",
+      topRated: "Iliyopewa Kiwango cha Juu",
+      fastDelivery: "Uwasilishaji wa Haraka",
+      online: "Mtandaoni",
+      available: "Inapatikana",
+      limited: "Nafasi Chache",
+      booked: "Imejaa",
+      delivery: "Uwasilishaji",
+      days: "siku",
+      rating: "Ukadiriaji",
+      reviews: "maoni",
+      startingFrom: "Kuanzia",
+      negotiable: "Inaweza kubishaniwa",
+      featuredServices: "Huduma Zilizokua Maarufu",
+      recentServices: "Huduma za Hivi Karibuni",
+      popularServices: "Huduma Maarufu",
+      similarServices: "Huduma Zinazofanana",
+      serviceDetails: "Maelezo ya Huduma",
+      description: "Maelezo",
+      whatIncluded: "Yaliyomo",
+      sellerInfo: "Maelezo ya Muuzaji",
+      contactOptions: "Chaguzi za Mawasiliano",
+      shareService: "Sambaza Huduma",
+      reportService: "Ripoti Huduma",
+      viewAll: "Tazama Huduma Zote"
     }
   };
 
   const t = translations[language];
 
-  const services = [
-    {
-      id: 1,
-      icon: <Code className="w-8 h-8" />,
-      title: t.webDevelopment,
-      description: "Modern, responsive websites built with cutting-edge technologies for optimal performance and user experience.",
-      features: ["React/Vue.js Development", "Node.js Backend", "MongoDB Database", "API Integration", "SEO Optimization", "Responsive Design"],
-      image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=300&fit=crop",
-      gradient: "from-blue-500 to-cyan-500",
-      bgGradient: "from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20",
-      price: 999,
-      originalPrice: 1299,
-      rating: 4.9,
-      projects: 150,
-      status: "available",
-      deliveryTime: 14,
-      clients: 89,
-      satisfaction: 98,
-      tags: ["Popular", "Fast Delivery"],
-      requests: 45,
-      category: "development",
-      delay: 0.1
-    },
-    {
-      id: 2,
-      icon: <Palette className="w-8 h-8" />,
-      title: t.uiuxDesign,
-      description: "Beautiful, intuitive designs that enhance user experience and drive engagement across all platforms.",
-      features: ["User Research & Analysis", "Wireframing & Prototyping", "Design Systems", "Interactive Mockups"],
-      image: "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400&h=300&fit=crop",
-      gradient: "from-purple-500 to-pink-500",
-      bgGradient: "from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20",
-      price: 799,
-      originalPrice: 999,
-      rating: 4.8,
-      projects: 120,
-      status: "limited",
-      deliveryTime: 10,
-      clients: 67,
-      satisfaction: 95,
-      tags: ["New", "Trending"],
-      requests: 32,
-      category: "design",
-      delay: 0.2
-    },
-    {
-      id: 3,
-      icon: <Smartphone className="w-8 h-8" />,
-      title: t.mobileApps,
-      description: "Cross-platform mobile applications that deliver seamless experiences on iOS and Android devices.",
-      features: ["React Native/Flutter", "iOS & Android Development", "App Store Deployment", "Push Notifications"],
-      image: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400&h=300&fit=crop",
-      gradient: "from-green-500 to-emerald-500",
-      bgGradient: "from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20",
-      price: 1299,
-      originalPrice: 1599,
-      rating: 4.7,
-      projects: 95,
-      status: "available",
-      deliveryTime: 21,
-      clients: 45,
-      satisfaction: 92,
-      tags: ["Popular", "Cross-Platform"],
-      requests: 28,
-      category: "development",
-      delay: 0.3
-    },
-    {
-      id: 4,
-      icon: <Zap className="w-8 h-8" />,
-      title: t.performanceOptimization,
-      description: "Speed up your applications with comprehensive performance tuning and optimization services.",
-      features: ["Lighthouse Optimization", "Core Web Vitals", "CDN Setup", "Caching Strategy"],
-      image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=300&fit=crop",
-      gradient: "from-orange-500 to-red-500",
-      bgGradient: "from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20",
-      price: 599,
-      originalPrice: 799,
-      rating: 4.9,
-      projects: 80,
-      status: "booked",
-      deliveryTime: 7,
-      clients: 78,
-      satisfaction: 96,
-      tags: ["Fast", "Essential"],
-      requests: 51,
-      category: "optimization",
-      delay: 0.4
-    },
-    {
-      id: 5,
-      icon: <Shield className="w-8 h-8" />,
-      title: t.securityAudit,
-      description: "Protect your applications with thorough security assessments and advanced protection implementations.",
-      features: ["Penetration Testing", "Code Security Review", "SSL/TLS Implementation", "Security Headers"],
-      image: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400&h=300&fit=crop",
-      gradient: "from-indigo-500 to-blue-500",
-      bgGradient: "from-indigo-50 to-blue-50 dark:from-indigo-950/20 dark:to-blue-950/20",
-      price: 899,
-      originalPrice: 1199,
-      rating: 4.8,
-      projects: 65,
-      status: "available",
-      deliveryTime: 5,
-      clients: 34,
-      satisfaction: 94,
-      tags: ["Security", "Essential"],
-      requests: 23,
-      category: "security",
-      delay: 0.5
-    },
-    {
-      id: 6,
-      icon: <Cloud className="w-8 h-8" />,
-      title: t.cloudSolutions,
-      description: "Scalable cloud infrastructure and deployment solutions for businesses of all sizes.",
-      features: ["AWS/Azure/GCP Setup", "Docker & Kubernetes", "CI/CD Pipelines", "Auto Scaling"],
-      image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&h=300&fit=crop",
-      gradient: "from-cyan-500 to-blue-500",
-      bgGradient: "from-cyan-50 to-blue-50 dark:from-cyan-950/20 dark:to-blue-950/20",
-      price: 1499,
-      originalPrice: 1899,
-      rating: 4.7,
-      projects: 110,
-      status: "limited",
-      deliveryTime: 28,
-      clients: 56,
-      satisfaction: 91,
-      tags: ["Scalable", "Enterprise"],
-      requests: 37,
-      category: "cloud",
-      delay: 0.6
-    }
+  // Sample categories for Jiji-style marketplace
+  const categories = [
+    { id: 'all', name: t.allCategories, icon: '📋', count: 0 },
+    { id: 'web', name: 'Web Development', icon: '💻', count: 45 },
+    { id: 'mobile', name: 'Mobile Apps', icon: '📱', count: 32 },
+    { id: 'design', name: 'Design', icon: '🎨', count: 28 },
+    { id: 'marketing', name: 'Digital Marketing', icon: '📈', count: 51 },
+    { id: 'writing', name: 'Content Writing', icon: '✍️', count: 39 },
+    { id: 'video', name: 'Video Editing', icon: '🎬', count: 27 },
+    { id: 'consulting', name: 'Consulting', icon: '💼', count: 34 }
   ];
 
-  const [sortOption, setSortOption] = useState('featured');
-  const [filteredServices, setFilteredServices] = useState(services);
+  // Sample locations
+  const locations = [
+    { id: 'all', name: t.allLocations },
+    { id: 'dar', name: 'Dar es Salaam' },
+    { id: 'nairobi', name: 'Nairobi' },
+    { id: 'kampala', name: 'Kampala' },
+    { id: 'online', name: t.online }
+  ];
+
+  // Initialize services data
+  useEffect(() => {
+    const sampleServices = [
+      {
+        id: 1,
+        title: "Professional Website Development",
+        description: "Custom responsive websites built with modern technologies. Perfect for businesses looking to establish online presence.",
+        price: 899,
+        originalPrice: 1200,
+        category: 'web',
+        location: 'dar',
+        rating: 4.8,
+        reviews: 127,
+        deliveryTime: 14,
+        seller: {
+          name: "Tech Solutions Ltd",
+          verified: true,
+          rating: 4.9,
+          joined: "2022",
+          online: true
+        },
+        images: [
+          "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=500&h=350&fit=crop",
+          "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500&h=350&fit=crop"
+        ],
+        tags: ["🔥 Popular", "⚡ Fast Delivery", "💎 Premium"],
+        featured: true,
+        negotiable: true,
+        createdAt: "2024-01-15"
+      },
+      {
+        id: 2,
+        title: "Mobile App Development",
+        description: "Cross-platform mobile applications for iOS and Android using React Native and Flutter.",
+        price: 1500,
+        originalPrice: 2000,
+        category: 'mobile',
+        location: 'nairobi',
+        rating: 4.6,
+        reviews: 89,
+        deliveryTime: 21,
+        seller: {
+          name: "App Masters",
+          verified: true,
+          rating: 4.7,
+          joined: "2021",
+          online: false
+        },
+        images: [
+          "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=500&h=350&fit=crop",
+          "https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=500&h=350&fit=crop"
+        ],
+        tags: ["📱 Cross-Platform", "🆕 New"],
+        featured: false,
+        negotiable: false,
+        createdAt: "2024-01-20"
+      },
+      {
+        id: 3,
+        title: "UI/UX Design Service",
+        description: "Beautiful and intuitive user interface designs that enhance user experience and engagement.",
+        price: 599,
+        originalPrice: 799,
+        category: 'design',
+        location: 'online',
+        rating: 4.9,
+        reviews: 203,
+        deliveryTime: 10,
+        seller: {
+          name: "Design Studio Pro",
+          verified: true,
+          rating: 5.0,
+          joined: "2020",
+          online: true
+        },
+        images: [
+          "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=500&h=350&fit=crop",
+          "https://images.unsplash.com/photo-1558655146-364adaf1fcc9?w=500&h=350&fit=crop"
+        ],
+        tags: ["🎨 Creative", "⭐ Top Rated"],
+        featured: true,
+        negotiable: true,
+        createdAt: "2024-01-10"
+      },
+      {
+        id: 4,
+        title: "Digital Marketing Strategy",
+        description: "Comprehensive digital marketing plans including SEO, social media, and content strategy.",
+        price: 450,
+        originalPrice: 600,
+        category: 'marketing',
+        location: 'kampala',
+        rating: 4.5,
+        reviews: 67,
+        deliveryTime: 7,
+        seller: {
+          name: "Marketing Gurus",
+          verified: false,
+          rating: 4.4,
+          joined: "2023",
+          online: true
+        },
+        images: [
+          "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500&h=350&fit=crop",
+          "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=500&h=350&fit=crop"
+        ],
+        tags: ["📈 Growth", "💡 Strategy"],
+        featured: false,
+        negotiable: true,
+        createdAt: "2024-01-18"
+      },
+      {
+        id: 5,
+        title: "Content Writing & Copywriting",
+        description: "High-quality content writing for websites, blogs, and marketing materials.",
+        price: 299,
+        originalPrice: 399,
+        category: 'writing',
+        location: 'online',
+        rating: 4.7,
+        reviews: 154,
+        deliveryTime: 5,
+        seller: {
+          name: "Content Creators Co.",
+          verified: true,
+          rating: 4.8,
+          joined: "2022",
+          online: true
+        },
+        images: [
+          "https://images.unsplash.com/photo-1455390582262-044cdead277a?w=500&h=350&fit=crop",
+          "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=500&h=350&fit=crop"
+        ],
+        tags: ["✍️ Professional", "🚀 Quick Delivery"],
+        featured: false,
+        negotiable: false,
+        createdAt: "2024-01-22"
+      },
+      {
+        id: 6,
+        title: "Video Editing Service",
+        description: "Professional video editing for YouTube, commercials, and social media content.",
+        price: 399,
+        originalPrice: 550,
+        category: 'video',
+        location: 'dar',
+        rating: 4.4,
+        reviews: 92,
+        deliveryTime: 7,
+        seller: {
+          name: "Video Pro Editors",
+          verified: true,
+          rating: 4.5,
+          joined: "2021",
+          online: false
+        },
+        images: [
+          "https://images.unsplash.com/photo-1536240478700-b869070f9279?w=500&h=350&fit=crop",
+          "https://images.unsplash.com/photo-1591267990536-e729d8bb8e0d?w=500&h=350&fit=crop"
+        ],
+        tags: ["🎬 Creative", "📹 Professional"],
+        featured: true,
+        negotiable: true,
+        createdAt: "2024-01-14"
+      }
+    ];
+
+    setServices(sampleServices);
+    setFilteredServices(sampleServices);
+    setLoading(false);
+  }, []);
 
   // Filter and sort services
   useEffect(() => {
@@ -314,17 +368,18 @@ const Service = () => {
       
       const matchesPrice = service.price >= filters.priceRange[0] && service.price <= filters.priceRange[1];
       
-      const matchesStatus = filters.status === 'all' || service.status === filters.status;
+      const matchesLocation = filters.location === 'all' || service.location === filters.location;
       
       const matchesRating = service.rating >= filters.rating;
-      
-      const matchesDelivery = service.deliveryTime <= filters.deliveryTime;
 
-      return matchesSearch && matchesCategory && matchesPrice && matchesStatus && matchesRating && matchesDelivery;
+      return matchesSearch && matchesCategory && matchesPrice && matchesLocation && matchesRating;
     });
 
     // Sort results
-    switch (sortOption) {
+    switch (sortBy) {
+      case 'newest':
+        results.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        break;
       case 'priceLow':
         results.sort((a, b) => a.price - b.price);
         break;
@@ -334,846 +389,698 @@ const Service = () => {
       case 'rating':
         results.sort((a, b) => b.rating - a.rating);
         break;
-      case 'delivery':
-        results.sort((a, b) => a.deliveryTime - b.deliveryTime);
+      case 'popular':
+        results.sort((a, b) => b.reviews - a.reviews);
         break;
-      default:
-        // Featured - keep original order
+      default: // featured
+        results.sort((a, b) => (b.featured === a.featured) ? 0 : b.featured ? -1 : 1);
         break;
     }
 
     setFilteredServices(results);
-  }, [searchTerm, filters, sortOption, services]);
+  }, [searchTerm, filters, sortBy, services]);
 
-  const toggleLike = (serviceId) => {
-    setLikedCards(prev => ({
-      ...prev,
-      [serviceId]: !prev[serviceId]
-    }));
+  // Handlers
+  const toggleFavorite = (serviceId) => {
+    setFavorites(prev => {
+      const newFavorites = new Set(prev);
+      if (newFavorites.has(serviceId)) {
+        newFavorites.delete(serviceId);
+      } else {
+        newFavorites.add(serviceId);
+      }
+      return newFavorites;
+    });
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'available': return 'bg-green-500';
-      case 'limited': return 'bg-yellow-500';
-      case 'booked': return 'bg-red-500';
-      default: return 'bg-gray-500';
-    }
+  const viewServiceDetails = (service) => {
+    setSelectedService(service);
+    setViewedServices(prev => new Set(prev).add(service.id));
   };
 
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'available': return t.available;
-      case 'limited': return t.limited;
-      case 'booked': return t.booked;
-      default: return status;
-    }
+  const closeServiceDetails = () => {
+    setSelectedService(null);
   };
 
   const clearFilters = () => {
     setFilters({
       category: 'all',
-      priceRange: [0, 2000],
-      status: 'all',
+      priceRange: [0, 5000],
+      location: 'all',
       rating: 0,
-      deliveryTime: 30
+      deliveryTime: 30,
+      sellerType: 'all'
     });
     setSearchTerm('');
   };
 
-  const toggleFilterSection = (section) => {
-    setExpandedFilters(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
+  // Close modal on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        closeServiceDetails();
+      }
+    };
 
+    if (selectedService) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.body.style.overflow = 'unset';
+    };
+  }, [selectedService]);
+
+  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.15
+        staggerChildren: 0.1
       }
     }
   };
 
-  const cardVariants = {
-    hidden: { 
-      opacity: 0, 
-      y: 60,
-      scale: 0.8
-    },
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
     visible: {
       opacity: 1,
       y: 0,
-      scale: 1,
       transition: {
         type: "spring",
-        stiffness: 80,
-        damping: 15
-      }
-    },
-    hover: {
-      y: -15,
-      scale: 1.03,
-      transition: {
-        type: "spring",
-        stiffness: 400,
-        damping: 25
+        stiffness: 100
       }
     }
   };
 
-  const imageVariants = {
-    hidden: { scale: 0.8, opacity: 0 },
-    visible: {
-      scale: 1,
-      opacity: 1,
-      transition: {
-        type: "spring",
-        stiffness: 100,
-        delay: 0.3
-      }
-    },
-    hover: {
-      scale: 1.15,
-      transition: {
-        type: "spring",
-        stiffness: 400,
-        duration: 0.5
-      }
-    }
+  const ServiceCard = ({ service }) => (
+    <motion.div
+      variants={itemVariants}
+      className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 overflow-hidden group"
+    >
+      <div className="relative">
+        <img 
+          src={service.images[0]} 
+          alt={service.title}
+          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+        />
+        
+        {/* Badges */}
+        <div className="absolute top-3 left-3 flex flex-wrap gap-1">
+          {service.tags.map((tag, index) => (
+            <span 
+              key={index}
+              className="px-2 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-semibold text-gray-800"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+
+        {/* Favorite Button */}
+        <button
+          onClick={() => toggleFavorite(service.id)}
+          className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
+        >
+          <Heart 
+            className={`w-4 h-4 transition-all ${
+              favorites.has(service.id) 
+                ? 'fill-red-500 text-red-500' 
+                : 'text-gray-600 hover:text-red-500'
+            }`}
+          />
+        </button>
+
+        {/* Price */}
+        <div className="absolute bottom-3 left-3 bg-black/80 text-white px-3 py-2 rounded-2xl backdrop-blur-sm">
+          <div className="flex items-center gap-1">
+            <span className="font-bold text-lg">${service.price}</span>
+            {service.originalPrice > service.price && (
+              <span className="text-sm line-through text-gray-300">${service.originalPrice}</span>
+            )}
+          </div>
+          {service.negotiable && (
+            <div className="text-xs text-green-300">{t.negotiable}</div>
+          )}
+        </div>
+      </div>
+
+      <div className="p-4">
+        <h3 className="font-semibold text-gray-800 mb-2 line-clamp-2 h-12">
+          {service.title}
+        </h3>
+        
+        <p className="text-gray-600 text-sm mb-3 line-clamp-2 h-10">
+          {service.description}
+        </p>
+
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-1">
+            <MapPin className="w-4 h-4 text-gray-400" />
+            <span className="text-sm text-gray-600">
+              {locations.find(loc => loc.id === service.location)?.name}
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-1">
+            <Clock className="w-4 h-4 text-gray-400" />
+            <span className="text-sm text-gray-600">{service.deliveryTime} {t.days}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+              <span className="text-sm font-semibold text-gray-800">{service.rating}</span>
+            </div>
+            <span className="text-sm text-gray-500">({service.reviews})</span>
+          </div>
+
+          <div className="flex items-center gap-1">
+            {service.seller.verified && (
+              <Verified className="w-4 h-4 text-blue-500" />
+            )}
+            <span className="text-sm text-gray-600">{service.seller.name}</span>
+          </div>
+        </div>
+
+        <div className="flex gap-2 mt-4">
+          <button
+            onClick={() => viewServiceDetails(service)}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-xl font-semibold text-sm transition-colors duration-200"
+          >
+            {t.viewDetails}
+          </button>
+          <button className="flex items-center justify-center w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors duration-200">
+            <MessageCircle className="w-5 h-5 text-gray-600" />
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+
+  const ServiceDetailModal = ({ service, onClose }) => {
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+    if (!service) return null;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      >
+        <motion.div
+          ref={modalRef}
+          initial={{ opacity: 0, scale: 0.9, y: 50 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 50 }}
+          className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl"
+        >
+          {/* Header */}
+          <div className="relative">
+            <img 
+              src={service.images[currentImageIndex]} 
+              alt={service.title}
+              className="w-full h-64 object-cover"
+            />
+            
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="absolute bottom-4 left-4 flex gap-2">
+              {service.images.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentImageIndex(index)}
+                  className={`w-3 h-3 rounded-full transition-all duration-200 ${
+                    currentImageIndex === index ? 'bg-white' : 'bg-white/50'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="p-6 overflow-y-auto max-h-[calc(90vh-16rem)]">
+            <div className="flex flex-col lg:flex-row gap-6">
+              {/* Main Content */}
+              <div className="flex-1">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                      {service.title}
+                    </h2>
+                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-4 h-4" />
+                        {locations.find(loc => loc.id === service.location)?.name}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        Listed {new Date(service.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => toggleFavorite(service.id)}
+                      className="p-2 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors duration-200"
+                    >
+                      <Heart 
+                        className={`w-5 h-5 ${
+                          favorites.has(service.id) 
+                            ? 'fill-red-500 text-red-500' 
+                            : 'text-gray-600'
+                        }`}
+                      />
+                    </button>
+                    <button className="p-2 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors duration-200">
+                      <Share2 className="w-5 h-5 text-gray-600" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Price */}
+                <div className="bg-gray-50 rounded-2xl p-4 mb-6">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-3xl font-bold text-gray-800">${service.price}</span>
+                    {service.originalPrice > service.price && (
+                      <span className="text-lg line-through text-gray-500">${service.originalPrice}</span>
+                    )}
+                    {service.negotiable && (
+                      <span className="bg-green-100 text-green-600 px-3 py-1 rounded-full text-sm font-semibold">
+                        {t.negotiable}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
+                      {service.deliveryTime} {t.days} {t.delivery}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Shield className="w-4 h-4" />
+                      Secure payment
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">{t.description}</h3>
+                  <p className="text-gray-600 leading-relaxed">{service.description}</p>
+                </div>
+
+                {/* Tags */}
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {service.tags.map((tag, index) => (
+                    <span 
+                      key={index}
+                      className="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-sm font-semibold"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sidebar */}
+              <div className="lg:w-80 flex-shrink-0">
+                <div className="bg-gray-50 rounded-2xl p-6 sticky top-4">
+                  {/* Seller Info */}
+                  <div className="mb-6">
+                    <h3 className="font-semibold text-gray-800 mb-3">{t.sellerInfo}</h3>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center text-white font-semibold">
+                        {service.seller.name.charAt(0)}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-gray-800">{service.seller.name}</span>
+                          {service.seller.verified && (
+                            <Verified className="w-4 h-4 text-blue-500" />
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 text-sm text-gray-600">
+                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                          <span>{service.seller.rating} • Joined {service.seller.joined}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm ${
+                      service.seller.online 
+                        ? 'bg-green-100 text-green-600' 
+                        : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      <div className={`w-2 h-2 rounded-full ${
+                        service.seller.online ? 'bg-green-500' : 'bg-gray-400'
+                      }`} />
+                      {service.seller.online ? 'Online' : 'Offline'}
+                    </div>
+                  </div>
+
+                  {/* Contact Options */}
+                  <div className="space-y-3">
+                    <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-xl font-semibold transition-colors duration-200 flex items-center justify-center gap-2">
+                      <MessageCircle className="w-5 h-5" />
+                      {t.contactSeller}
+                    </button>
+                    
+                    <button className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-xl font-semibold transition-colors duration-200 flex items-center justify-center gap-2">
+                      <Phone className="w-5 h-5" />
+                      Call Seller
+                    </button>
+
+                    <button className="w-full border-2 border-gray-300 hover:border-gray-400 text-gray-700 py-3 px-4 rounded-xl font-semibold transition-colors duration-200 flex items-center justify-center gap-2">
+                      <Flag className="w-5 h-5" />
+                      {t.reportService}
+                    </button>
+                  </div>
+
+                  {/* Trust Badges */}
+                  <div className="mt-6 p-4 bg-white rounded-2xl border border-gray-200">
+                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                      <Shield className="w-4 h-4" />
+                      <span className="font-semibold">Safe & Secure</span>
+                    </div>
+                    <div className="space-y-2 text-xs text-gray-500">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        Verified sellers
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        Secure payments
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        24/7 support
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    );
   };
 
-  const sidebarVariants = {
-    hidden: { x: -400, opacity: 0 },
-    visible: { 
-      x: 0, 
-      opacity: 1,
-      transition: {
-        type: "spring",
-        stiffness: 300,
-        damping: 30
-      }
-    },
-    exit: {
-      x: -400,
-      opacity: 0,
-      transition: {
-        type: "spring",
-        stiffness: 300,
-        damping: 30
-      }
-    }
-  };
-
-  const overlayVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1 },
-    exit: { opacity: 0 }
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
-    <section className="py-20 px-4 bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900/20 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        {/* Header Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7 }}
-          viewport={{ once: true }}
-          className="text-center mb-12"
-        >
-          <motion.div
-            initial={{ scale: 0, rotate: -180 }}
-            whileInView={{ scale: 1, rotate: 0 }}
-            transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-            className="inline-flex items-center px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-sm font-semibold mb-6 shadow-lg"
-          >
-            <Zap className="w-5 h-5 mr-2" />
-            {t.ourServices}
-          </motion.div>
-          <h2 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-gray-800 via-blue-600 to-cyan-600 dark:from-white dark:via-blue-300 dark:to-cyan-300 bg-clip-text text-transparent mb-6">
-            {t.whatWeOffer}
-          </h2>
-          <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed">
-            {t.description}
-          </p>
-        </motion.div>
+    <div className="min-h-screen bg-gray-50">
+    
 
-        {/* Search and Filter Bar */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="flex flex-col lg:flex-row gap-4 mb-8 items-start lg:items-center justify-between"
-        >
-          {/* Search Bar */}
-          <div className="relative w-full lg:w-96">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder={t.searchPlaceholder}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg focus:shadow-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
-            />
-          </div>
-
-          {/* Sort and Filter Controls */}
-          <div className="flex gap-4 w-full lg:w-auto">
-            {/* Sort Dropdown */}
-            <div className="relative flex-1 lg:flex-none">
-              <select
-                value={sortOption}
-                onChange={(e) => setSortOption(e.target.value)}
-                className="w-full appearance-none bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm py-4 pl-4 pr-12 rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg focus:shadow-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
-              >
-                <option value="featured">{t.sortOptions.featured}</option>
-                <option value="priceLow">{t.sortOptions.priceLow}</option>
-                <option value="priceHigh">{t.sortOptions.priceHigh}</option>
-                <option value="rating">{t.sortOptions.rating}</option>
-                <option value="delivery">{t.sortOptions.delivery}</option>
-              </select>
-              <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
-            </div>
-
-            {/* Filter Button for Mobile */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden flex items-center gap-2 px-6 py-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              <Filter className="w-5 h-5" />
-              {t.filterTitle}
-            </motion.button>
-          </div>
-        </motion.div>
-
-        <div className="flex gap-8">
-          {/* Sidebar Filters for Desktop */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
-            className="hidden lg:block w-80 flex-shrink-0"
-          >
-            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-2xl p-6 sticky top-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Sidebar Filters - Desktop */}
+          <aside className="hidden lg:block w-80 flex-shrink-0">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sticky top-24">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                  <SlidersHorizontal className="w-6 h-6" />
-                  {t.filterTitle}
-                </h3>
+                <h2 className="text-lg font-semibold text-gray-800">{t.filterTitle}</h2>
                 <button
                   onClick={clearFilters}
-                  className="text-sm text-blue-500 hover:text-blue-600 font-semibold transition-colors duration-200"
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                 >
                   {t.clearFilters}
                 </button>
               </div>
 
+              {/* Search */}
+              <div className="mb-6">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    placeholder={t.searchPlaceholder}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
               {/* Category Filter */}
               <div className="mb-6">
-                <button
-                  onClick={() => toggleFilterSection('category')}
-                  className="flex items-center justify-between w-full text-left font-semibold text-gray-800 dark:text-white mb-3"
-                >
-                  <span>{t.category}</span>
-                  {expandedFilters.category ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                </button>
-                {expandedFilters.category && (
-                  <div className="space-y-2">
-                    {['all', 'development', 'design', 'optimization', 'security', 'cloud'].map((category) => (
-                      <label key={category} className="flex items-center gap-3 cursor-pointer group">
-                        <input
-                          type="radio"
-                          name="category"
-                          value={category}
-                          checked={filters.category === category}
-                          onChange={(e) => setFilters({...filters, category: e.target.value})}
-                          className="w-4 h-4 text-blue-500 focus:ring-blue-500"
-                        />
-                        <span className="text-gray-600 dark:text-gray-400 group-hover:text-gray-800 dark:group-hover:text-white transition-colors duration-200 capitalize">
-                          {category === 'all' ? t.allCategories : category}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                )}
+                <h3 className="font-medium text-gray-800 mb-3">{t.categories}</h3>
+                <div className="space-y-2">
+                  {categories.map(category => (
+                    <button
+                      key={category.id}
+                      onClick={() => setFilters(prev => ({...prev, category: category.id}))}
+                      className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors duration-200 ${
+                        filters.category === category.id
+                          ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                          : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      <span>{category.icon} {category.name}</span>
+                      <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                        {category.count}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* Price Range Filter */}
+              {/* Price Range */}
               <div className="mb-6">
-                <button
-                  onClick={() => toggleFilterSection('price')}
-                  className="flex items-center justify-between w-full text-left font-semibold text-gray-800 dark:text-white mb-3"
-                >
-                  <span>{t.priceRange}</span>
-                  {expandedFilters.price ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                </button>
-                {expandedFilters.price && (
-                  <div>
-                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <span>${filters.priceRange[0]}</span>
-                      <span>${filters.priceRange[1]}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="2000"
-                      step="100"
-                      value={filters.priceRange[1]}
-                      onChange={(e) => setFilters({...filters, priceRange: [filters.priceRange[0], parseInt(e.target.value)]})}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500"
-                    />
+                <h3 className="font-medium text-gray-800 mb-3">{t.priceRange}</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm text-gray-600">
+                    <span>${filters.priceRange[0]}</span>
+                    <span>${filters.priceRange[1]}</span>
                   </div>
-                )}
+                  <input
+                    type="range"
+                    min="0"
+                    max="5000"
+                    value={filters.priceRange[1]}
+                    onChange={(e) => setFilters(prev => ({...prev, priceRange: [0, parseInt(e.target.value)]}))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                </div>
               </div>
 
-              {/* Status Filter */}
+              {/* Location */}
               <div className="mb-6">
-                <button
-                  onClick={() => toggleFilterSection('status')}
-                  className="flex items-center justify-between w-full text-left font-semibold text-gray-800 dark:text-white mb-3"
-                >
-                  <span>{t.statusFilter}</span>
-                  {expandedFilters.status ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                </button>
-                {expandedFilters.status && (
-                  <div className="space-y-2">
-                    {['all', 'available', 'limited', 'booked'].map((status) => (
-                      <label key={status} className="flex items-center gap-3 cursor-pointer group">
-                        <input
-                          type="radio"
-                          name="status"
-                          value={status}
-                          checked={filters.status === status}
-                          onChange={(e) => setFilters({...filters, status: e.target.value})}
-                          className="w-4 h-4 text-blue-500 focus:ring-blue-500"
-                        />
-                        <span className="text-gray-600 dark:text-gray-400 group-hover:text-gray-800 dark:group-hover:text-white transition-colors duration-200 capitalize">
-                          {status === 'all' ? t.allStatus : getStatusText(status)}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Rating Filter */}
-              <div className="mb-6">
-                <button
-                  onClick={() => toggleFilterSection('rating')}
-                  className="flex items-center justify-between w-full text-left font-semibold text-gray-800 dark:text-white mb-3"
-                >
-                  <span>{t.ratingFilter}</span>
-                  {expandedFilters.rating ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                </button>
-                {expandedFilters.rating && (
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Star className="w-5 h-5 text-yellow-400 fill-current" />
-                      <span className="text-gray-600 dark:text-gray-400">{filters.rating}+</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="5"
-                      step="0.5"
-                      value={filters.rating}
-                      onChange={(e) => setFilters({...filters, rating: parseFloat(e.target.value)})}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-yellow-500"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Delivery Time Filter */}
-              <div className="mb-6">
-                <button
-                  onClick={() => toggleFilterSection('delivery')}
-                  className="flex items-center justify-between w-full text-left font-semibold text-gray-800 dark:text-white mb-3"
-                >
-                  <span>{t.deliveryTimeFilter}</span>
-                  {expandedFilters.delivery ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                </button>
-                {expandedFilters.delivery && (
-                  <div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      {filters.deliveryTime} {t.days}
-                    </div>
-                    <input
-                      type="range"
-                      min="1"
-                      max="30"
-                      step="1"
-                      value={filters.deliveryTime}
-                      onChange={(e) => setFilters({...filters, deliveryTime: parseInt(e.target.value)})}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-green-500"
-                    />
-                  </div>
-                )}
+                <h3 className="font-medium text-gray-800 mb-3">{t.location}</h3>
+                <div className="space-y-2">
+                  {locations.map(location => (
+                    <button
+                      key={location.id}
+                      onClick={() => setFilters(prev => ({...prev, location: location.id}))}
+                      className={`w-full text-left p-3 rounded-lg transition-colors duration-200 ${
+                        filters.location === location.id
+                          ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                          : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      {location.name}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-          </motion.div>
-
-          {/* Mobile Filter Sidebar */}
-          <AnimatePresence>
-            {sidebarOpen && (
-              <>
-                <motion.div
-                  variants={overlayVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                  className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
-                  onClick={() => setSidebarOpen(false)}
-                />
-                <motion.div
-                  variants={sidebarVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                  className="fixed left-0 top-0 h-full w-80 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm z-50 lg:hidden overflow-y-auto"
-                >
-                  <div className="p-6">
-                    <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                        <SlidersHorizontal className="w-6 h-6" />
-                        {t.filterTitle}
-                      </h3>
-                      <button
-                        onClick={() => setSidebarOpen(false)}
-                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-2xl transition-colors duration-200"
-                      >
-                        <X className="w-6 h-6" />
-                      </button>
-                    </div>
-
-                    {/* Mobile Filter Content - Same as desktop but with close functionality */}
-                    <div className="space-y-6">
-                      {/* Category Filter */}
-                      <div>
-                        <button
-                          onClick={() => toggleFilterSection('category')}
-                          className="flex items-center justify-between w-full text-left font-semibold text-gray-800 dark:text-white mb-3"
-                        >
-                          <span>{t.category}</span>
-                          {expandedFilters.category ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                        </button>
-                        {expandedFilters.category && (
-                          <div className="space-y-2">
-                            {['all', 'development', 'design', 'optimization', 'security', 'cloud'].map((category) => (
-                              <label key={category} className="flex items-center gap-3 cursor-pointer group">
-                                <input
-                                  type="radio"
-                                  name="category"
-                                  value={category}
-                                  checked={filters.category === category}
-                                  onChange={(e) => setFilters({...filters, category: e.target.value})}
-                                  className="w-4 h-4 text-blue-500 focus:ring-blue-500"
-                                />
-                                <span className="text-gray-600 dark:text-gray-400 group-hover:text-gray-800 dark:group-hover:text-white transition-colors duration-200 capitalize">
-                                  {category === 'all' ? t.allCategories : category}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Price Range Filter */}
-                      <div>
-                        <button
-                          onClick={() => toggleFilterSection('price')}
-                          className="flex items-center justify-between w-full text-left font-semibold text-gray-800 dark:text-white mb-3"
-                        >
-                          <span>{t.priceRange}</span>
-                          {expandedFilters.price ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                        </button>
-                        {expandedFilters.price && (
-                          <div>
-                            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                              <span>${filters.priceRange[0]}</span>
-                              <span>${filters.priceRange[1]}</span>
-                            </div>
-                            <input
-                              type="range"
-                              min="0"
-                              max="2000"
-                              step="100"
-                              value={filters.priceRange[1]}
-                              onChange={(e) => setFilters({...filters, priceRange: [filters.priceRange[0], parseInt(e.target.value)]})}
-                              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500"
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Status Filter */}
-                      <div>
-                        <button
-                          onClick={() => toggleFilterSection('status')}
-                          className="flex items-center justify-between w-full text-left font-semibold text-gray-800 dark:text-white mb-3"
-                        >
-                          <span>{t.statusFilter}</span>
-                          {expandedFilters.status ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                        </button>
-                        {expandedFilters.status && (
-                          <div className="space-y-2">
-                            {['all', 'available', 'limited', 'booked'].map((status) => (
-                              <label key={status} className="flex items-center gap-3 cursor-pointer group">
-                                <input
-                                  type="radio"
-                                  name="status"
-                                  value={status}
-                                  checked={filters.status === status}
-                                  onChange={(e) => setFilters({...filters, status: e.target.value})}
-                                  className="w-4 h-4 text-blue-500 focus:ring-blue-500"
-                                />
-                                <span className="text-gray-600 dark:text-gray-400 group-hover:text-gray-800 dark:group-hover:text-white transition-colors duration-200 capitalize">
-                                  {status === 'all' ? t.allStatus : getStatusText(status)}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Rating Filter */}
-                      <div>
-                        <button
-                          onClick={() => toggleFilterSection('rating')}
-                          className="flex items-center justify-between w-full text-left font-semibold text-gray-800 dark:text-white mb-3"
-                        >
-                          <span>{t.ratingFilter}</span>
-                          {expandedFilters.rating ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                        </button>
-                        {expandedFilters.rating && (
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <Star className="w-5 h-5 text-yellow-400 fill-current" />
-                              <span className="text-gray-600 dark:text-gray-400">{filters.rating}+</span>
-                            </div>
-                            <input
-                              type="range"
-                              min="0"
-                              max="5"
-                              step="0.5"
-                              value={filters.rating}
-                              onChange={(e) => setFilters({...filters, rating: parseFloat(e.target.value)})}
-                              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-yellow-500"
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Delivery Time Filter */}
-                      <div>
-                        <button
-                          onClick={() => toggleFilterSection('delivery')}
-                          className="flex items-center justify-between w-full text-left font-semibold text-gray-800 dark:text-white mb-3"
-                        >
-                          <span>{t.deliveryTimeFilter}</span>
-                          {expandedFilters.delivery ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                        </button>
-                        {expandedFilters.delivery && (
-                          <div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                              {filters.deliveryTime} {t.days}
-                            </div>
-                            <input
-                              type="range"
-                              min="1"
-                              max="30"
-                              step="1"
-                              value={filters.deliveryTime}
-                              onChange={(e) => setFilters({...filters, deliveryTime: parseInt(e.target.value)})}
-                              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-green-500"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3 mt-8">
-                      <button
-                        onClick={clearFilters}
-                        className="flex-1 py-3 px-6 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300"
-                      >
-                        {t.clearFilters}
-                      </button>
-                      <button
-                        onClick={() => setSidebarOpen(false)}
-                        className="flex-1 py-3 px-6 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-2xl hover:from-blue-600 hover:to-cyan-600 transition-all duration-300"
-                      >
-                        {t.applyFilters}
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
+          </aside>
 
           {/* Main Content */}
-          <div className="flex-1">
-            {/* Results Count */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="flex items-center justify-between mb-6"
-            >
-              <p className="text-gray-600 dark:text-gray-400">
-                {t.showing} <span className="font-semibold text-gray-800 dark:text-white">{filteredServices.length}</span> {t.of} <span className="font-semibold text-gray-800 dark:text-white">{services.length}</span> {t.results}
-              </p>
-            </motion.div>
+          <main className="flex-1">
+            {/* Mobile Search and Filters */}
+            <div className="lg:hidden mb-6 space-y-4">
+              <div className="flex gap-3">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    placeholder={t.searchPlaceholder}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="px-4 py-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors duration-200"
+                >
+                  <Filter className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Mobile Categories Scroll */}
+              <div className="overflow-x-auto scrollbar-hide">
+                <div className="flex gap-2 pb-2">
+                  {categories.map(category => (
+                    <button
+                      key={category.id}
+                      onClick={() => setFilters(prev => ({...prev, category: category.id}))}
+                      className={`flex-shrink-0 px-4 py-2 rounded-lg font-medium transition-colors duration-200 whitespace-nowrap ${
+                        filters.category === category.id
+                          ? 'bg-blue-100 text-blue-600'
+                          : 'bg-white text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      {category.icon} {category.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Sort and Results Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <span className="text-gray-600">
+                  {filteredServices.length} {t.servicesFound}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-600 hidden sm:block">{t.sortBy}:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="featured">{t.featured}</option>
+                  <option value="newest">{t.newest}</option>
+                  <option value="priceLow">{t.priceLow}</option>
+                  <option value="priceHigh">{t.priceHigh}</option>
+                  <option value="rating">{t.rating}</option>
+                  <option value="popular">{t.popular}</option>
+                </select>
+              </div>
+            </div>
 
             {/* Services Grid */}
-            {filteredServices.length > 0 ? (
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6"
+            >
+              {filteredServices.map(service => (
+                <ServiceCard key={service.id} service={service} />
+              ))}
+            </motion.div>
+
+            {/* Empty State */}
+            {filteredServices.length === 0 && (
               <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-                className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center py-12"
               >
-                {filteredServices.map((service) => (
-                  <motion.div
-                    key={service.id}
-                    variants={cardVariants}
-                    whileHover="hover"
-                    className="group relative"
-                  >
-                    {/* Background Glow Effect */}
-                    <div className={`absolute inset-0 bg-gradient-to-r ${service.gradient} rounded-3xl blur-xl opacity-0 group-hover:opacity-30 transition-all duration-500`} />
-                    
-                    {/* Main Card */}
-                    <div className={`relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-3xl h-full border border-gray-200/50 dark:border-gray-700/50 shadow-2xl hover:shadow-3xl transition-all duration-500 overflow-hidden`}>
-                      
-                      {/* Product Image Section */}
-                      <motion.div
-                        variants={imageVariants}
-                        className="relative h-56 overflow-hidden"
-                      >
-                        <img 
-                          src={service.image} 
-                          alt={service.title}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                        />
-                        <div className={`absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent`} />
-                        
-                        {/* Top Badges */}
-                        <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-                          {service.tags.map((tag, index) => (
-                            <span 
-                              key={index}
-                              className="px-3 py-1 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full text-xs font-semibold text-gray-800 dark:text-white shadow-lg"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-
-                        {/* Status Badge */}
-                        <div className="absolute top-4 right-4">
-                          <div className={`flex items-center px-3 py-2 rounded-2xl ${getStatusColor(service.status)} text-white text-xs font-semibold shadow-lg backdrop-blur-sm`}>
-                            <div className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse" />
-                            {getStatusText(service.status)}
-                          </div>
-                        </div>
-
-                        {/* Like Button */}
-                        <motion.button
-                          onClick={() => toggleLike(service.id)}
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          className="absolute top-16 right-4 p-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300"
-                        >
-                          <Heart 
-                            className={`w-5 h-5 transition-all duration-300 ${
-                              likedCards[service.id] 
-                                ? 'fill-red-500 text-red-500' 
-                                : 'text-gray-600 dark:text-gray-400 hover:text-red-500'
-                            }`}
-                          />
-                        </motion.button>
-
-                        {/* Rating and Projects */}
-                        <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-                          <div className="flex items-center space-x-4">
-                            <div className="flex items-center bg-black/70 text-white px-3 py-2 rounded-2xl text-sm backdrop-blur-sm">
-                              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400 mr-1" />
-                              {service.rating}
-                            </div>
-                            <div className="bg-black/70 text-white px-3 py-2 rounded-2xl text-sm backdrop-blur-sm">
-                              {service.projects}+ {t.projects}
-                            </div>
-                          </div>
-                          <div className="bg-black/70 text-white px-3 py-2 rounded-2xl text-sm backdrop-blur-sm">
-                            <Eye className="w-4 h-4 inline mr-1" />
-                            {service.requests} {t.requests}
-                          </div>
-                        </div>
-                      </motion.div>
-
-                      <div className="p-6">
-                        {/* Header with Icon and Pricing */}
-                        <div className="flex items-start justify-between mb-4">
-                          <div className={`p-3 rounded-2xl bg-gradient-to-r ${service.gradient} shadow-lg`}>
-                            {service.icon}
-                          </div>
-                          
-                          {/* Pricing with Discount */}
-                          <div className="text-right">
-                            <div className="flex items-center space-x-2">
-                              <span className="text-3xl font-bold text-gray-800 dark:text-white">
-                                ${service.price}
-                              </span>
-                              {service.originalPrice > service.price && (
-                                <span className="text-lg line-through text-gray-500 dark:text-gray-400">
-                                  ${service.originalPrice}
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                              {t.startingFrom} {t.perMonth}
-                            </div>
-                            {service.originalPrice > service.price && (
-                              <div className="inline-flex items-center px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full text-xs font-semibold mt-1">
-                                <Tag className="w-3 h-3 mr-1" />
-                                {Math.round((1 - service.price / service.originalPrice) * 100)}% OFF
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Title and Description */}
-                        <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-3 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-gray-800 group-hover:to-gray-600 dark:group-hover:from-white dark:group-hover:to-gray-300 group-hover:bg-clip-text transition-all duration-500">
-                          {service.title}
-                        </h3>
-                        
-                        <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed text-base">
-                          {service.description}
-                        </p>
-
-                        {/* Stats Grid */}
-                        <div className="grid grid-cols-3 gap-4 mb-6">
-                          <div className="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-2xl">
-                            <Clock className="w-5 h-5 text-blue-500 mx-auto mb-2" />
-                            <div className="text-sm font-semibold text-gray-800 dark:text-white">{service.deliveryTime}</div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400">{t.delivery}</div>
-                          </div>
-                          <div className="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-2xl">
-                            <Users className="w-5 h-5 text-green-500 mx-auto mb-2" />
-                            <div className="text-sm font-semibold text-gray-800 dark:text-white">{service.clients}+</div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400">{t.clients}</div>
-                          </div>
-                          <div className="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-2xl">
-                            <ThumbsUp className="w-5 h-5 text-yellow-500 mx-auto mb-2" />
-                            <div className="text-sm font-semibold text-gray-800 dark:text-white">{service.satisfaction}%</div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400">{t.satisfaction}</div>
-                          </div>
-                        </div>
-
-                        {/* Features List */}
-                        <div className="mb-6">
-                          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center">
-                            <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                            {t.features}
-                          </h4>
-                          <div className="grid grid-cols-2 gap-2">
-                            {service.features.slice(0, 4).map((feature, index) => (
-                              <motion.div
-                                key={index}
-                                initial={{ opacity: 0, x: -20 }}
-                                whileInView={{ opacity: 1, x: 0 }}
-                                transition={{ delay: service.delay + index * 0.1 }}
-                                className="flex items-center text-gray-600 dark:text-gray-400 text-sm p-2 rounded-xl bg-gray-50 dark:bg-gray-700/30"
-                              >
-                                <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${service.gradient} mr-3 flex-shrink-0`} />
-                                <span className="truncate">{feature}</span>
-                              </motion.div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex gap-3">
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className={`flex-1 flex items-center justify-center gap-2 py-4 px-6 rounded-2xl bg-gradient-to-r ${service.gradient} text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 group/btn`}
-                          >
-                            <ShoppingCart className="w-5 h-5" />
-                            {t.addToCart}
-                          </motion.button>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="flex items-center justify-center gap-2 py-4 px-6 rounded-2xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                          >
-                            <Eye className="w-5 h-5" />
-                            {t.viewDetails}
-                          </motion.button>
-                        </div>
-                      </div>
-
-                      {/* Animated Border */}
-                      <div className={`absolute inset-0 rounded-3xl bg-gradient-to-r ${service.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10`}>
-                        <div className="absolute inset-[3px] rounded-3xl bg-white dark:bg-gray-800" />
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </motion.div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="text-center py-20"
-              >
-                <div className="w-24 h-24 mx-auto mb-6 bg-gray-100 dark:bg-gray-700 rounded-3xl flex items-center justify-center">
+                <div className="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-3xl flex items-center justify-center">
                   <Search className="w-12 h-12 text-gray-400" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-3">
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">
                   No services found
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
+                <p className="text-gray-600 mb-6 max-w-md mx-auto">
                   Try adjusting your search criteria or filters to find what you're looking for.
                 </p>
                 <button
                   onClick={clearFilters}
-                  className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-8 py-4 rounded-2xl font-semibold hover:from-blue-600 hover:to-cyan-600 transition-all duration-300"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors duration-200"
                 >
                   Clear all filters
                 </button>
               </motion.div>
             )}
-          </div>
-        </div>
 
-        {/* Bottom CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.4 }}
-          viewport={{ once: true }}
-          className="text-center mt-20"
-        >
-          <motion.button
-            whileHover={{ scale: 1.05, y: -5 }}
-            whileTap={{ scale: 0.95 }}
-            className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-12 py-5 rounded-2xl font-bold text-lg shadow-2xl hover:shadow-3xl transition-all duration-500"
-          >
-            {t.viewAllServices}
-            <ArrowRight className="w-5 h-5 inline ml-2 group-hover:translate-x-1 transition-transform" />
-          </motion.button>
-        </motion.div>
+            {/* Load More */}
+            {filteredServices.length > 0 && (
+              <div className="text-center mt-12">
+                <button className="bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 px-8 py-3 rounded-xl font-semibold transition-colors duration-200">
+                  {t.viewAll}
+                </button>
+              </div>
+            )}
+          </main>
+        </div>
       </div>
-    </section>
+
+      {/* Mobile Filters Sidebar */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 lg:hidden"
+          >
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 30 }}
+              className="absolute right-0 top-0 h-full w-80 bg-white overflow-y-auto"
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-semibold text-gray-800">{t.filterTitle}</h2>
+                  <button
+                    onClick={() => setSidebarOpen(false)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Mobile filter content would go here */}
+                <div className="space-y-6">
+                  {/* Add mobile filter sections here */}
+                </div>
+
+                <div className="flex gap-3 mt-8">
+                  <button
+                    onClick={clearFilters}
+                    className="flex-1 py-3 px-4 border border-gray-200 text-gray-600 rounded-xl font-semibold transition-colors duration-200 hover:bg-gray-50"
+                  >
+                    {t.clearFilters}
+                  </button>
+                  <button
+                    onClick={() => setSidebarOpen(false)}
+                    className="flex-1 py-3 px-4 bg-blue-600 text-white rounded-xl font-semibold transition-colors duration-200 hover:bg-blue-700"
+                  >
+                    {t.applyFilters}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Service Detail Modal */}
+      <AnimatePresence>
+        {selectedService && (
+          <ServiceDetailModal 
+            service={selectedService} 
+            onClose={closeServiceDetails} 
+          />
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
 

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 import { 
   FaUser, 
   FaEnvelope, 
@@ -13,12 +14,19 @@ import {
   FaArrowRight,
   FaArrowLeft,
   FaCheck,
-  FaGlobe
+  FaGlobe,
+  FaExclamationCircle,
+  FaSpinner
 } from "react-icons/fa";
-import { useLanguage } from "../components/LanguageContext"; // Import the language context
+import { useLanguage } from "../components/LanguageContext";
 
 const SignupForm = () => {
   const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     // Step 1
     userType: "",
@@ -73,11 +81,17 @@ const SignupForm = () => {
       back: "Nyuma",
       next: "Endelea",
       createAccountBtn: "Fungua Akaunti",
+      creatingAccount: "Inafungua Akaunti...",
       // Placeholders
       firstNamePlaceholder: "Jina",
       lastNamePlaceholder: "Jina la Ukoo",
       emailPlaceholder: "barua@pepe.com",
-      phonePlaceholder: "+255 123 456 789"
+      phonePlaceholder: "+255 123 456 789",
+      // Messages
+      successMessage: "Akaunti imefunguliwa kikamilifu!",
+      passwordMismatch: "Nenosiri halifanani",
+      fillAllFields: "Tafadhali jaza sehemu zote muhimu",
+      somethingWentWrong: "Kuna hitilafu imetokea, tafadhali jaribu tena"
     },
     en: {
       // General
@@ -111,11 +125,17 @@ const SignupForm = () => {
       back: "Back",
       next: "Next",
       createAccountBtn: "Create Account",
+      creatingAccount: "Creating Account...",
       // Placeholders
       firstNamePlaceholder: "John",
       lastNamePlaceholder: "Doe",
       emailPlaceholder: "your@email.com",
-      phonePlaceholder: "+1 234 567 8900"
+      phonePlaceholder: "+1 234 567 8900",
+      // Messages
+      successMessage: "Account created successfully!",
+      passwordMismatch: "Passwords do not match",
+      fillAllFields: "Please fill all required fields",
+      somethingWentWrong: "Something went wrong, please try again"
     }
   };
 
@@ -133,20 +153,126 @@ const SignupForm = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+    
+    // Clear error when user starts typing
+    if (error) setError("");
+  };
+
+  const validateStep = (currentStep) => {
+    switch (currentStep) {
+      case 1:
+        if (!formData.userType || !formData.firstName || !formData.lastName || !formData.phoneNumber) {
+          setError(t.fillAllFields);
+          return false;
+        }
+        break;
+      case 2:
+        if (!formData.gender || !formData.dateOfBirth) {
+          setError(t.fillAllFields);
+          return false;
+        }
+        break;
+      case 3:
+        if (!formData.password || !formData.confirmPassword) {
+          setError(t.fillAllFields);
+          return false;
+        }
+        if (formData.password !== formData.confirmPassword) {
+          setError(t.passwordMismatch);
+          return false;
+        }
+        if (formData.password.length < 6) {
+          setError("Password must be at least 6 characters long");
+          return false;
+        }
+        break;
+      default:
+        return true;
+    }
+    return true;
   };
 
   const nextStep = () => {
-    if (step < 3) setStep(step + 1);
+    if (validateStep(step)) {
+      setError("");
+      if (step < 3) setStep(step + 1);
+    }
   };
 
   const prevStep = () => {
+    setError("");
     if (step > 1) setStep(step - 1);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Signup submitted:", formData);
-    // Handle signup logic here
+    
+    // Final validation
+    if (!validateStep(3)) {
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      // Prepare data for backend
+      const submitData = {
+        userType: formData.userType,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email || null, // Send null if empty since it's optional
+        phoneNumber: formData.phoneNumber,
+        gender: formData.gender,
+        dateOfBirth: formData.dateOfBirth,
+        password: formData.password
+      };
+
+      // Replace with your actual backend API endpoint
+      const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+      
+      const response = await axios.post(`${API_URL}/auth/signup`, submitData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000, // 10 seconds timeout
+      });
+
+      if (response.status === 201 || response.status === 200) {
+        setSuccess(true);
+        
+        // Show success message for 2 seconds then redirect
+        setTimeout(() => {
+          navigate("/signin", { 
+            state: { 
+              message: language === 'sw' 
+                ? "Akaunti imefunguliwa kikamilifu! Tafadhali ingia." 
+                : "Account created successfully! Please sign in." 
+            } 
+          });
+        }, 2000);
+      }
+    } catch (err) {
+      console.error("Signup error:", err);
+      
+      // Handle different error scenarios
+      if (err.response) {
+        // Server responded with error status
+        const errorMessage = err.response.data?.message || err.response.data?.error || t.somethingWentWrong;
+        setError(errorMessage);
+      } else if (err.request) {
+        // Request was made but no response received
+        setError(language === 'sw' 
+          ? "Hitilafu ya mtandao. Tafadhali angalia muunganisho wako wa intaneti na ujaribu tena." 
+          : "Network error. Please check your internet connection and try again."
+        );
+      } else {
+        // Something else happened
+        setError(t.somethingWentWrong);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const stepVariants = {
@@ -154,6 +280,46 @@ const SignupForm = () => {
     in: { x: 0, opacity: 1 },
     out: { x: -300, opacity: 0 }
   };
+
+  // If success, show success message
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 border border-gray-100 dark:border-gray-700 text-center max-w-md w-full"
+        >
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="w-20 h-20 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6"
+          >
+            <FaCheck className="text-white text-3xl" />
+          </motion.div>
+          
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+            {t.createAccount}
+          </h2>
+          
+          <p className="text-green-600 dark:text-green-400 text-lg font-semibold mb-6">
+            {t.successMessage}
+          </p>
+          
+          <div className="flex justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          </div>
+          
+          <p className="text-gray-600 dark:text-gray-300 text-sm mt-4">
+            {language === 'sw' 
+              ? "Inaelekezwa kwenye ukurasa wa kuingia..." 
+              : "Redirecting to sign in page..."}
+          </p>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
@@ -236,6 +402,18 @@ const SignupForm = () => {
             </motion.p>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-3"
+            >
+              <FaExclamationCircle className="text-red-500 flex-shrink-0" />
+              <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
+            </motion.div>
+          )}
+
           {/* Form */}
           <form onSubmit={handleSubmit}>
             <AnimatePresence mode="wait">
@@ -282,7 +460,7 @@ const SignupForm = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          {t.firstName}
+                          {t.firstName} *
                         </label>
                         <input
                           type="text"
@@ -296,7 +474,7 @@ const SignupForm = () => {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          {t.lastName}
+                          {t.lastName} *
                         </label>
                         <input
                           type="text"
@@ -331,7 +509,7 @@ const SignupForm = () => {
                     {/* Phone Number */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t.phoneNumber}
+                        {t.phoneNumber} *
                       </label>
                       <div className="relative">
                         <FaPhone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
@@ -355,7 +533,7 @@ const SignupForm = () => {
                     {/* Gender Selection */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t.gender}
+                        {t.gender} *
                       </label>
                       <div className="grid grid-cols-3 gap-3">
                         {[
@@ -383,7 +561,7 @@ const SignupForm = () => {
                     {/* Date of Birth */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t.dateOfBirth}
+                        {t.dateOfBirth} *
                       </label>
                       <div className="relative">
                         <FaCalendarAlt className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
@@ -406,7 +584,7 @@ const SignupForm = () => {
                     {/* Password */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t.password}
+                        {t.password} *
                       </label>
                       <div className="relative">
                         <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
@@ -418,14 +596,20 @@ const SignupForm = () => {
                           className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 dark:text-white"
                           placeholder={t.createPassword}
                           required
+                          minLength="6"
                         />
                       </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {language === 'sw' 
+                          ? "Nenosiri lazima liwe na herufi 6 au zaidi" 
+                          : "Password must be 6 characters or longer"}
+                      </p>
                     </div>
 
                     {/* Confirm Password */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {t.confirmPassword}
+                        {t.confirmPassword} *
                       </label>
                       <div className="relative">
                         <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
@@ -457,7 +641,7 @@ const SignupForm = () => {
                     ? 'bg-gray-400 text-white cursor-not-allowed' 
                     : 'bg-blue-500 text-white hover:bg-blue-600'
                 }`}
-                disabled={step === 1}
+                disabled={step === 1 || loading}
               >
                 <FaArrowLeft className="mr-2" />
                 {t.back}
@@ -468,10 +652,20 @@ const SignupForm = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   type="submit"
-                  className="flex items-center px-8 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:shadow-xl transition-all duration-300"
+                  disabled={loading}
+                  className="flex items-center px-8 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {t.createAccountBtn}
-                  <FaCheck className="ml-2" />
+                  {loading ? (
+                    <>
+                      <FaSpinner className="animate-spin mr-2" />
+                      {t.creatingAccount}
+                    </>
+                  ) : (
+                    <>
+                      {t.createAccountBtn}
+                      <FaCheck className="ml-2" />
+                    </>
+                  )}
                 </motion.button>
               ) : (
                 <motion.button
