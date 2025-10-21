@@ -50,9 +50,6 @@ const ServiceDetail = () => {
       reportService: "Report Service",
       similarServices: "Similar Services",
       whatIncluded: "What's Included",
-      securePayment: "Secure Payment",
-      moneyBack: "Money Back Guarantee",
-      support: "24/7 Support",
       online: "Online",
       available: "Available",
       limited: "Limited Spots"
@@ -373,10 +370,6 @@ const ServiceDetail = () => {
                 
                 <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
                   <div className="flex items-center gap-1">
-                    <Eye className="w-4 h-4" />
-                    <span className="text-sm text-gray-600">
-                1000+ {t.views}
-              </span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
@@ -401,39 +394,7 @@ const ServiceDetail = () => {
                 </div>
               </div>
 
-              {/* Price Section */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <span className="text-4xl font-bold text-gray-800">${service.price}</span>
-                  {service.originalPrice > service.price && (
-                    <span className="text-2xl line-through text-gray-500">${service.originalPrice}</span>
-                  )}
-                  {service.negotiable && (
-                    <span className="bg-green-100 text-green-600 px-4 py-2 rounded-full text-sm font-semibold">
-                      {t.negotiable}
-                    </span>
-                  )}
-                </div>
-                
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Shield className="w-4 h-4 text-green-500" />
-                    {t.securePayment}
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    {t.moneyBack}
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Users className="w-4 h-4 text-green-500" />
-                    {t.support}
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Award className="w-4 h-4 text-green-500" />
-                    Premium Quality
-                  </div>
-                </div>
-              </div>
+              
 
               {/* Description */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
@@ -554,31 +515,6 @@ const ServiceDetail = () => {
                 </div>
               </div>
 
-              {/* Trust Badges */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center gap-2 text-gray-800 mb-4">
-                  <Shield className="w-5 h-5 text-blue-500" />
-                  <span className="font-semibold">Safe & Secure</span>
-                </div>
-                <div className="space-y-3 text-sm text-gray-600">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span>Verified sellers and services</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span>Secure payment protection</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span>Money-back guarantee</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span>24/7 customer support</span>
-                  </div>
-                </div>
-              </div>
 
               {/* Service Stats */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">

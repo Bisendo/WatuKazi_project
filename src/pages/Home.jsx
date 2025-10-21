@@ -1,6 +1,5 @@
 import React from "react";
 import Hero from "../components/Hero";
-import JobFilter from "../components/JobFillter";
 import JobList from "../components/Joblist";
 import Footer from "../components/Footer";
 
@@ -13,9 +12,6 @@ const Home = () => {
           <div className="col-span-6">
             <JobList />
 
-          </div>
-          <div className="col-span-6">
-            <JobFilter />
           </div>
         </div>
       </div>

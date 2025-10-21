@@ -135,11 +135,8 @@ const ServiceList = () => {
         reviews: 127,
         deliveryTime: 14,
         seller: {
-          name: "Tech Solutions Ltd",
-          verified: true,
-          rating: 4.9,
-          joined: "2022",
-          online: true
+          verified:false,
+         
         },
         images: [
           "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=500&h=350&fit=crop",
@@ -162,11 +159,7 @@ const ServiceList = () => {
         reviews: 89,
         deliveryTime: 21,
         seller: {
-          name: "App Masters",
-          verified: true,
-          rating: 4.7,
-          joined: "2021",
-          online: false
+          verified: false,
         },
         images: [
           "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=500&h=350&fit=crop",
@@ -189,11 +182,7 @@ const ServiceList = () => {
         reviews: 203,
         deliveryTime: 10,
         seller: {
-          name: "Design Studio Pro",
-          verified: true,
-          rating: 5.0,
-          joined: "2020",
-          online: true
+          verified: false,
         },
         images: [
           "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=500&h=350&fit=crop",
