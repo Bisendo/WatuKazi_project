@@ -1,8 +1,23 @@
 import React from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { FaMapMarkerAlt, FaClock, FaUsers, FaStar, FaBolt } from "react-icons/fa";
 
 const JobCard = ({ job }) => {
+  const navigate = useNavigate();
+
+  const handleApplyNow = () => {
+    // Navigate to product details page with job ID
+    navigate(`/job/${job.id}`, { 
+      state: { 
+        job: job 
+      } 
+    });
+    
+    // Alternative: if you're using URL parameters only
+    // navigate(`/job/${job.id}`);
+  };
+
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
@@ -86,7 +101,10 @@ const JobCard = ({ job }) => {
             </p>
           </div>
           
-          <button className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-6 rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-transform">
+          <button 
+            onClick={handleApplyNow}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-6 rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-transform"
+          >
             Apply Now
           </button>
         </div>

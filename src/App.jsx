@@ -15,8 +15,11 @@ import { LanguageProvider } from "./components/LanguageContext";
 import { ThemeProvider } from "./components/ThemeContext";
 import ContactPage from "./components/Contacts";
 import AboutUs from "./components/AboutUs";
-import ServiceList from "./components/ServiceLists";
 import ServiceDetail from "./components/ServiceDetails";
+import ServiceList from "./components/ServiceLists";
+import { VerificationProvider } from "./contexts/verificationCode";
+import VerificationForm from "./components/VerificationCodeForm";
+import JobDetails from "./components/JobDetails";
 
 
 const App = () => {
@@ -26,31 +29,37 @@ const App = () => {
 
   return (
     <div>
-      <ThemeProvider>
-        <LanguageProvider>
-          <Navibar />
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/hero" element={<Hero />} />
-            <Route path="/joblist" element={<JobList />} />
-            <Route path="/jobcard" element={<JobCard />} />
-            <Route path="/animations" element={<AnimationWrapper />} />
-            <Route path="/footer" element={<Footer />} />
-            <Route path="/signup" element={<SignUpForm />} />
-            <Route path="/Signin" element={<LoginForm />} />
-            <Route path="/service/:id" element={<ServiceDetail />} />
-            <Route path="/service" element={<ServiceList />} />
-            <Route path="/contact" element={<ContactPage />} />
-            <Route path="/about" element={<AboutUs />} />
+      
+        <ThemeProvider>
+          <LanguageProvider>
+            <Navibar />
+            <VerificationProvider>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/hero" element={<Hero />} />
+              <Route path="/joblist" element={<JobList />} />
+              <Route path="/job/:id" element={<JobDetails />} />
+              <Route path="/jobcard" element={<JobCard />} />
+              <Route path="/animations" element={<AnimationWrapper />} />
+              <Route path="/footer" element={<Footer />} />
+              <Route path="/signup" element={<SignUpForm />} />
+              <Route path="/Signin" element={<LoginForm />} />
+              <Route path="/service/:id" element={<ServiceDetail />} />
+              <Route path="/service" element={<ServiceList />} />
+              <Route path="/verify" element={<VerificationForm />} />
+              <Route path="/contact" element={<ContactPage />} />
+              <Route path="/about" element={<AboutUs />} />
 
 
 
 
 
 
-          </Routes>
-        </LanguageProvider>
-      </ThemeProvider>
+            </Routes>
+                  </VerificationProvider>
+
+          </LanguageProvider>
+        </ThemeProvider>
     </div>
   );
 };
