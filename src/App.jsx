@@ -20,20 +20,16 @@ import ServiceList from "./components/ServiceLists";
 import { VerificationProvider } from "./contexts/verificationCode";
 import VerificationForm from "./components/VerificationCodeForm";
 import JobDetails from "./components/JobDetails";
-
+import ForgotPassword from "./components/ForgotPassword";
+import ResetPassword from "./components/ResetPassword";
 
 const App = () => {
-
-
-
-
   return (
     <div>
-      
-        <ThemeProvider>
-          <LanguageProvider>
-            <Navibar />
-            <VerificationProvider>
+      <ThemeProvider>
+        <LanguageProvider>
+          <Navibar />
+          <VerificationProvider>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/hero" element={<Hero />} />
@@ -49,17 +45,13 @@ const App = () => {
               <Route path="/verify" element={<VerificationForm />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/about" element={<AboutUs />} />
-
-
-
-
-
-
+              {/* Add the new forgot password routes */}
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
             </Routes>
-                  </VerificationProvider>
-
-          </LanguageProvider>
-        </ThemeProvider>
+          </VerificationProvider>
+        </LanguageProvider>
+      </ThemeProvider>
     </div>
   );
 };

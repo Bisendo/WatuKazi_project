@@ -6,7 +6,7 @@ const JobList = () => {
   const [showAllJobs, setShowAllJobs] = useState(false);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(null); 
 
   // Function to fetch jobs from API
   const fetchJobs = async () => {
