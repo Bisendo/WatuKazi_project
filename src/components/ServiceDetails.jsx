@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useLanguage } from './LanguageContext';
-import { 
+import {
   ArrowLeft,
   Star,
   Heart,
@@ -16,7 +16,7 @@ import {
   Flag,
   CheckCircle,
   Users,
-  
+
   Eye,
   Award
 } from 'lucide-react';
@@ -47,7 +47,6 @@ const ServiceDetail = () => {
       sellerInfo: "Seller Information",
       contactOptions: "Contact Options",
       shareService: "Share Service",
-      reportService: "Report Service",
       similarServices: "Similar Services",
       whatIncluded: "What's Included",
       online: "Online",
@@ -217,7 +216,7 @@ const ServiceDetail = () => {
       setTimeout(() => {
         const foundService = sampleServices.find(s => s.id === parseInt(id));
         setService(foundService);
-        
+
         // Find similar services (same category, excluding current)
         if (foundService) {
           const similar = sampleServices
@@ -225,7 +224,7 @@ const ServiceDetail = () => {
             .slice(0, 3);
           setSimilarServices(similar);
         }
-        
+
         setLoading(false);
       }, 500);
     };
@@ -259,7 +258,7 @@ const ServiceDetail = () => {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Service Not Found</h2>
           <p className="text-gray-600 mb-6">The service you're looking for doesn't exist.</p>
-          <Link 
+          <Link
             to="/services"
             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors duration-200"
           >
@@ -283,18 +282,17 @@ const ServiceDetail = () => {
               <ArrowLeft className="w-5 h-5" />
               <span>{t.backToServices}</span>
             </button>
-            
+
             <div className="flex items-center gap-3">
               <button
                 onClick={toggleFavorite}
                 className="p-2 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors duration-200"
               >
-                <Heart 
-                  className={`w-5 h-5 ${
-                    favorites.has(service.id) 
-                      ? 'fill-red-500 text-red-500' 
+                <Heart
+                  className={`w-5 h-5 ${favorites.has(service.id)
+                      ? 'fill-red-500 text-red-500'
                       : 'text-gray-600'
-                  }`}
+                    }`}
                 />
               </button>
               <button className="p-2 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors duration-200">
@@ -312,12 +310,12 @@ const ServiceDetail = () => {
             {/* Image Gallery */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-6">
               <div className="relative">
-                <img 
-                  src={service.images[currentImageIndex]} 
+                <img
+                  src={service.images[currentImageIndex]}
                   alt={service.title}
                   className="w-full h-96 object-cover"
                 />
-                
+
                 {/* Image Navigation */}
                 {service.images.length > 1 && (
                   <div className="absolute bottom-4 left-4 flex gap-2">
@@ -325,9 +323,8 @@ const ServiceDetail = () => {
                       <button
                         key={index}
                         onClick={() => setCurrentImageIndex(index)}
-                        className={`w-3 h-3 rounded-full transition-all duration-200 ${
-                          currentImageIndex === index ? 'bg-white' : 'bg-white/50'
-                        }`}
+                        className={`w-3 h-3 rounded-full transition-all duration-200 ${currentImageIndex === index ? 'bg-white' : 'bg-white/50'
+                          }`}
                       />
                     ))}
                   </div>
@@ -342,14 +339,13 @@ const ServiceDetail = () => {
                       <button
                         key={index}
                         onClick={() => setCurrentImageIndex(index)}
-                        className={`flex-shrink-0 w-20 h-16 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
-                          currentImageIndex === index 
-                            ? 'border-blue-500' 
+                        className={`flex-shrink-0 w-20 h-16 rounded-lg overflow-hidden border-2 transition-all duration-200 ${currentImageIndex === index
+                            ? 'border-blue-500'
                             : 'border-gray-200 hover:border-gray-300'
-                        }`}
+                          }`}
                       >
-                        <img 
-                          src={image} 
+                        <img
+                          src={image}
                           alt={`${service.title} ${index + 1}`}
                           className="w-full h-full object-cover"
                         />
@@ -367,7 +363,7 @@ const ServiceDetail = () => {
                 <h1 className="text-3xl font-bold text-gray-800 mb-4">
                   {service.title}
                 </h1>
-                
+
                 <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
                   <div className="flex items-center gap-1">
                   </div>
@@ -384,7 +380,7 @@ const ServiceDetail = () => {
                 {/* Tags */}
                 <div className="flex flex-wrap gap-2">
                   {service.tags.map((tag, index) => (
-                    <span 
+                    <span
                       key={index}
                       className="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-sm font-semibold"
                     >
@@ -394,7 +390,7 @@ const ServiceDetail = () => {
                 </div>
               </div>
 
-              
+
 
               {/* Description */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
@@ -402,7 +398,7 @@ const ServiceDetail = () => {
                 <p className="text-gray-600 leading-relaxed">{service.description}</p>
               </div>
 
-           
+
 
               {/* Seller Information */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
@@ -417,20 +413,18 @@ const ServiceDetail = () => {
                       {service.seller.verified && (
                         <Verified className="w-5 h-5 text-blue-500" />
                       )}
-                      <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm ${
-                        service.seller.online 
-                          ? 'bg-green-100 text-green-600' 
+                      <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm ${service.seller.online
+                          ? 'bg-green-100 text-green-600'
                           : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        <div className={`w-2 h-2 rounded-full ${
-                          service.seller.online ? 'bg-green-500' : 'bg-gray-400'
-                        }`} />
+                        }`}>
+                        <div className={`w-2 h-2 rounded-full ${service.seller.online ? 'bg-green-500' : 'bg-gray-400'
+                          }`} />
                         {service.seller.online ? t.online : 'Offline'}
                       </div>
                     </div>
-                    
+
                     <p className="text-gray-600 mb-4">{service.seller.description}</p>
-                    
+
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div className="text-center">
                         <div className="flex items-center justify-center gap-1 mb-1">
@@ -467,8 +461,8 @@ const ServiceDetail = () => {
                         to={`/service/${similarService.id}`}
                         className="block bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors duration-200 border border-gray-200"
                       >
-                        <img 
-                          src={similarService.images[0]} 
+                        <img
+                          src={similarService.images[0]}
                           alt={similarService.title}
                           className="w-full h-32 object-cover rounded-lg mb-3"
                         />
@@ -496,21 +490,16 @@ const ServiceDetail = () => {
               {/* Contact Card */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
                 <h3 className="font-semibold text-gray-800 mb-4">{t.contactOptions}</h3>
-                
+
                 <div className="space-y-3">
                   <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-xl font-semibold transition-colors duration-200 flex items-center justify-center gap-2">
                     <MessageCircle className="w-5 h-5" />
                     {t.contactSeller}
                   </button>
-                  
+
                   <button className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-xl font-semibold transition-colors duration-200 flex items-center justify-center gap-2">
                     <Phone className="w-5 h-5" />
                     Call Seller
-                  </button>
-
-                  <button className="w-full border-2 border-gray-300 hover:border-gray-400 text-gray-700 py-3 px-4 rounded-xl font-semibold transition-colors duration-200 flex items-center justify-center gap-2">
-                    <Flag className="w-5 h-5" />
-                    {t.reportService}
                   </button>
                 </div>
               </div>
