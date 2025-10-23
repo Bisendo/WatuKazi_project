@@ -1,223 +1,114 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import JobCard from "./JobCard";
 
 const JobList = () => {
   const [showAllJobs, setShowAllJobs] = useState(false);
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const jobs = [
-    {
-      id: 1,
-      company: "Amazon",
-      title: "Software Engineer",
-      location: "San Francisco, CA",
-      salary: "$90,000 - $120,000 / yr",
-      level: "Mid-Level",
-      type: "Full-time",
-      logo: "https://logo.clearbit.com/amazon.com",
-      posted: "2 hours ago",
-      applicants: 42,
-      urgent: true,
-      featured: true
-    },
-    {
-      id: 2,
-      company: "Facebook",
-      title: "Product Manager",
-      location: "Remote",
-      salary: "$110,000 - $140,000 / yr",
-      level: "Senior",
-      type: "Full-time",
-      logo: "https://logo.clearbit.com/facebook.com",
-      posted: "1 day ago",
-      applicants: 28,
-      urgent: false,
-      featured: true
-    },
-    {
-      id: 3,
-      company: "Google",
-      title: "Frontend Developer",
-      location: "New York, NY",
-      salary: "$95,000 - $130,000 / yr",
-      level: "Mid-Level",
-      type: "Full-time",
-      logo: "https://logo.clearbit.com/google.com",
-      posted: "3 hours ago",
-      applicants: 156,
-      urgent: true,
-      featured: false
-    },
-    {
-      id: 4,
-      company: "Microsoft",
-      title: "Data Scientist",
-      location: "Seattle, WA",
-      salary: "$100,000 - $135,000 / yr",
-      level: "Senior",
-      type: "Full-time",
-      logo: "https://logo.clearbit.com/microsoft.com",
-      posted: "5 hours ago",
-      applicants: 89,
-      urgent: false,
-      featured: true
-    },
-    {
-      id: 5,
-      company: "Netflix",
-      title: "UI/UX Designer",
-      location: "Los Angeles, CA",
-      salary: "$85,000 - $115,000 / yr",
-      level: "Mid-Level",
-      type: "Full-time",
-      logo: "https://logo.clearbit.com/netflix.com",
-      posted: "1 day ago",
-      applicants: 67,
-      urgent: false,
-      featured: false
-    },
-    {
-      id: 6,
-      company: "Apple",
-      title: "iOS Developer",
-      location: "Cupertino, CA",
-      salary: "$105,000 - $140,000 / yr",
-      level: "Senior",
-      type: "Full-time",
-      logo: "https://logo.clearbit.com/apple.com",
-      posted: "6 hours ago",
-      applicants: 203,
-      urgent: true,
-      featured: true
-    },
-    {
-      id: 7,
-      company: "Tesla",
-      title: "Backend Engineer",
-      location: "Austin, TX",
-      salary: "$95,000 - $125,000 / yr",
-      level: "Mid-Level",
-      type: "Full-time",
-      logo: "https://logo.clearbit.com/tesla.com",
-      posted: "2 days ago",
-      applicants: 134,
-      urgent: false,
-      featured: false
-    },
-    {
-      id: 8,
-      company: "Spotify",
-      title: "DevOps Engineer",
-      location: "Remote",
-      salary: "$100,000 - $130,000 / yr",
-      level: "Senior",
-      type: "Full-time",
-      logo: "https://logo.clearbit.com/spotify.com",
-      posted: "4 hours ago",
-      applicants: 45,
-      urgent: true,
-      featured: false
-    },
-    {
-      id: 9,
-      company: "Airbnb",
-      title: "Full Stack Developer",
-      location: "San Francisco, CA",
-      salary: "$110,000 - $145,000 / yr",
-      level: "Senior",
-      type: "Full-time",
-      logo: "https://logo.clearbit.com/airbnb.com",
-      posted: "1 day ago",
-      applicants: 178,
-      urgent: false,
-      featured: true
-    },
-    {
-      id: 10,
-      company: "Uber",
-      title: "Machine Learning Engineer",
-      location: "Remote",
-      salary: "$120,000 - $160,000 / yr",
-      level: "Senior",
-      type: "Full-time",
-      logo: "https://logo.clearbit.com/uber.com",
-      posted: "3 days ago",
-      applicants: 92,
-      urgent: false,
-      featured: false
-    },
-    {
-      id: 11,
-      company: "Twitter",
-      title: "React Native Developer",
-      location: "Remote",
-      salary: "$90,000 - $120,000 / yr",
-      level: "Mid-Level",
-      type: "Contract",
-      logo: "https://logo.clearbit.com/twitter.com",
-      posted: "8 hours ago",
-      applicants: 56,
-      urgent: true,
-      featured: false
-    },
-    {
-      id: 12,
-      company: "LinkedIn",
-      title: "Technical Product Manager",
-      location: "Sunnyvale, CA",
-      salary: "$115,000 - $150,000 / yr",
-      level: "Senior",
-      type: "Full-time",
-      logo: "https://logo.clearbit.com/linkedin.com",
-      posted: "2 days ago",
-      applicants: 78,
-      urgent: false,
-      featured: true
-    },
-    {
-      id: 13,
-      company: "Salesforce",
-      title: "Cloud Architect",
-      location: "Remote",
-      salary: "$130,000 - $170,000 / yr",
-      level: "Expert",
-      type: "Full-time",
-      logo: "https://logo.clearbit.com/salesforce.com",
-      posted: "1 day ago",
-      applicants: 34,
-      urgent: true,
-      featured: true
-    },
-    {
-      id: 14,
-      company: "Adobe",
-      title: "UX Researcher",
-      location: "San Jose, CA",
-      salary: "$85,000 - $110,000 / yr",
-      level: "Mid-Level",
-      type: "Full-time",
-      logo: "https://logo.clearbit.com/adobe.com",
-      posted: "5 hours ago",
-      applicants: 41,
-      urgent: false,
-      featured: false
-    },
-    {
-      id: 15,
-      company: "Intel",
-      title: "Systems Engineer",
-      location: "Portland, OR",
-      salary: "$95,000 - $125,000 / yr",
-      level: "Mid-Level",
-      type: "Full-time",
-      logo: "https://logo.clearbit.com/intel.com",
-      posted: "3 days ago",
-      applicants: 63,
-      urgent: false,
-      featured: false
+  // Function to fetch jobs from API
+  const fetchJobs = async () => {
+    try {
+      setLoading(true);
+      // Replace with your actual API endpoint
+      const response = await axios.get("https://api.watukazi.com/api/v1/services");
+      
+      // Transform the API data to match the JobCard component structure
+      const transformedJobs = response.data.services.map(service => ({
+        id: service.id,
+        company: service.creator.businessName || `${service.creator.firstName} ${service.creator.lastName}`,
+        title: service.title,
+        location: service.location,
+        salary: service.budget ? `${service.budget} ${service.currency}` : "Negotiable",
+        level: getExperienceLevel(service),
+        type: getJobType(service),
+        logo: service.images && JSON.parse(service.images)[0] || getDefaultLogo(service.creator.businessName),
+        posted: getTimeAgo(service.createdAt),
+        applicants: service.totalBookings || 0,
+        urgent: service.urgency === "high",
+        featured: service.featured
+      }));
+
+      setJobs(transformedJobs);
+      setLoading(false);
+    } catch (err) {
+      setError("Failed to fetch jobs");
+      setLoading(false);
+      console.error("Error fetching jobs:", err);
     }
-  ];
+  };
+
+  // Helper function to determine experience level
+  const getExperienceLevel = (service) => {
+    if (service.budget > 100000) return "Expert";
+    if (service.budget > 50000) return "Senior";
+    if (service.budget > 20000) return "Mid-Level";
+    return "Entry-Level";
+  };
+
+  // Helper function to determine job type
+  const getJobType = (service) => {
+    if (service.budgetType === "fixed") return "Fixed Price";
+    if (service.budgetType === "negotiable") return "Negotiable";
+    if (service.budgetType === "flexible") return "Flexible";
+    return "Full-time";
+  };
+
+  // Helper function to get default logo
+  const getDefaultLogo = (businessName) => {
+    // You can replace this with your own default logo logic
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(businessName || "Company")}&background=random`;
+  };
+
+  // Helper function to calculate time ago
+  const getTimeAgo = (dateString) => {
+    const now = new Date();
+    const postedDate = new Date(dateString);
+    const diffInHours = Math.floor((now - postedDate) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return "Just now";
+    if (diffInHours < 24) return `${diffInHours} hours ago`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays} days ago`;
+  };
+
+  useEffect(() => {
+    fetchJobs();
+  }, []);
 
   const displayedJobs = showAllJobs ? jobs : jobs.slice(0, 6);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <span className="ml-3 text-gray-600 dark:text-gray-400">Loading jobs...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-red-400 dark:text-red-500 text-6xl mb-4">⚠️</div>
+        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+          Error Loading Jobs
+        </h3>
+        <p className="text-gray-600 dark:text-gray-400 mb-4">
+          {error}
+        </p>
+        <button
+          onClick={fetchJobs}
+          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -275,7 +166,7 @@ const JobList = () => {
       )}
 
       {/* Empty State */}
-      {jobs.length === 0 && (
+      {jobs.length === 0 && !loading && (
         <div className="text-center py-12">
           <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">🔍</div>
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
