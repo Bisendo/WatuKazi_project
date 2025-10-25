@@ -65,7 +65,7 @@ const LoginForm = () => {
       welcome: "Welcome Back",
       subtitle: "Sign in with your phone number",
       phoneLabel: "Phone Number",
-      phonePlaceholder: "0699571386",
+      phonePlaceholder: "+255 600 660 555",
       phoneHelp: "Enter your 10-digit phone number",
       passwordLabel: "Password",
       passwordPlaceholder: "Enter your password",
