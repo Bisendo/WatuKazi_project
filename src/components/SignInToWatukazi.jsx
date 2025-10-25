@@ -41,7 +41,7 @@ const LoginForm = () => {
       welcome: "Karibu Tena",
       subtitle: "Ingia kwa namba yako ya simu",
       phoneLabel: "Namba ya Simu",
-      phonePlaceholder: "0699571386",
+      phonePlaceholder: "+255 600 660 555",
       phoneHelp: "Weka namba yako ya simu (tarakimu 10)",
       passwordLabel: "Nenosiri",
       passwordPlaceholder: "Weka nenosiri lako",

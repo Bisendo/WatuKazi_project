@@ -376,11 +376,7 @@ const ServiceList = () => {
               <span className="font-bold text-lg">
                 {formatPrice(service.price, service.currency)}
               </span>
-              {service.originalPrice > service.price && (
-                <span className="text-sm line-through text-gray-300">
-                  {formatPrice(service.originalPrice, service.currency)}
-                </span>
-              )}
+              {service.originalPrice > service.price }
             </div>
             <div className="text-xs">
               {service.negotiable ? t.negotiable : t.fixedPrice}

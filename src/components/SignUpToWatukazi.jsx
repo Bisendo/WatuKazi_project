@@ -108,7 +108,7 @@ const SignupForm = () => {
       firstNamePlaceholder: "Jina",
       lastNamePlaceholder: "Jina la Ukoo",
       emailPlaceholder: "barua@pepe.com",
-      phonePlaceholder: "+255 123 456 789",
+      phonePlaceholder: "+255 004 456 734",
       businessNamePlaceholder: "Jina la biashara yako",
       bioPlaceholder: "Eleza huduma unazotoa...",
       cityPlaceholder: "Jiji lako",
