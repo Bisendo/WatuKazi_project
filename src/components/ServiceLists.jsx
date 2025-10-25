@@ -3,13 +3,14 @@ import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useLanguage } from '../components/LanguageContext';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 import { 
   Search,
   Filter,
   Star,
   Heart,
   Clock,
-   Eye ,
+  Eye,
   Verified,
   X
 } from 'lucide-react';
@@ -22,12 +23,13 @@ const ServiceList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('featured');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [favorites, setFavorites] = useState(new Set());
 
   // Filters state
   const [filters, setFilters] = useState({
     category: 'all',
-    priceRange: [0, 5000],
+    priceRange: [0, 500000],
     location: 'all',
     rating: 0,
     deliveryTime: 30,
@@ -64,10 +66,11 @@ const ServiceList = () => {
       verifiedSeller: "Verified Seller",
       delivery: "Delivery",
       days: "days",
-      rating: "Rating",
       reviews: "reviews",
       startingFrom: "Starting from",
-      negotiable: "Negotiable"
+      negotiable: "Negotiable",
+      fixedPrice: "Fixed Price",
+      budget: "Budget"
     },
     sw: {
       searchPlaceholder: "Tafuta huduma...",
@@ -97,107 +100,106 @@ const ServiceList = () => {
       verifiedSeller: "Muuzaji Aliyethibitishwa",
       delivery: "Uwasilishaji",
       days: "siku",
-      rating: "Ukadiriaji",
       reviews: "maoni",
       startingFrom: "Kuanzia",
-      negotiable: "Inaweza kubishaniwa"
+      negotiable: "Inaweza kubishaniwa",
+      fixedPrice: "Bei Maalum",
+      budget: "Bajeti"
     }
   };
 
   const t = translations[language];
 
-  // Sample categories for Jiji-style marketplace
+  // Sample categories - you might want to fetch these from API as well
   const categories = [
     { id: 'all', name: t.allCategories, icon: '📋', count: 0 },
-    { id: 'web', name: 'Web Development', icon: '💻', count: 45 },
-    { id: 'mobile', name: 'Mobile Apps', icon: '📱', count: 32 },
-    { id: 'design', name: 'Design', icon: '🎨', count: 28 },
-    { id: 'marketing', name: 'Digital Marketing', icon: '📈', count: 51 },
-    { id: 'writing', name: 'Content Writing', icon: '✍️', count: 39 },
-    { id: 'video', name: 'Video Editing', icon: '🎬', count: 27 },
-    { id: 'consulting', name: 'Consulting', icon: '💼', count: 34 }
+    { id: '0b2dfe02-7efe-4bbd-9cb0-b96e260dd7ed', name: 'Electrical Services', icon: '⚡', count: 45 },
+    { id: '80262b02-f776-4f61-84cd-81777885afe0', name: 'Vehicle Repair', icon: '🚗', count: 32 },
+    { id: '659f6a26-c4d5-40d5-aa2f-618aa6b21705', name: 'Plumbing', icon: '🔧', count: 28 },
+    { id: 'web', name: 'Web Development', icon: '💻', count: 51 },
+    { id: 'design', name: 'Design', icon: '🎨', count: 39 }
   ];
 
-  
+  // Safe JSON parsing function
+  const safeJsonParse = (str, fallback = []) => {
+    if (!str) return fallback;
+    try {
+      // Check if it's already an array
+      if (Array.isArray(str)) return str;
+      
+      // Try to parse as JSON
+      const parsed = JSON.parse(str);
+      return Array.isArray(parsed) ? parsed : fallback;
+    } catch (error) {
+      console.warn('JSON parsing error:', error, 'String:', str);
+      return fallback;
+    }
+  };
 
-  // Initialize services data
+  // Fetch services from API
   useEffect(() => {
-    const sampleServices = [
-      {
-        id: 1,
-        title: "Professional Website Development",
-        description: "Custom responsive websites built with modern technologies. Perfect for businesses looking to establish online presence.",
-        price: 899,
-        originalPrice: 1200,
-        category: 'web',
-        location: 'dar',
-        rating: 4.8,
-        reviews: 127,
-        deliveryTime: 14,
-        seller: {
-          verified:false,
-         
-        },
-        images: [
-          "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=500&h=350&fit=crop",
-          "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500&h=350&fit=crop"
-        ],
-        tags: ["🔥 Popular", "⚡ Fast Delivery", "💎 Premium"],
-        featured: true,
-        negotiable: true,
-        createdAt: "2024-01-15"
-      },
-      {
-        id: 2,
-        title: "Mobile App Development",
-        description: "Cross-platform mobile applications for iOS and Android using React Native and Flutter.",
-        price: 1500,
-        originalPrice: 2000,
-        category: 'mobile',
-        location: 'nairobi',
-        rating: 4.6,
-        reviews: 89,
-        deliveryTime: 21,
-        seller: {
-          verified: false,
-        },
-        images: [
-          "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=500&h=350&fit=crop",
-          "https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=500&h=350&fit=crop"
-        ],
-        tags: ["📱 Cross-Platform", "🆕 New"],
-        featured: false,
-        negotiable: false,
-        createdAt: "2024-01-20"
-      },
-      {
-        id: 3,
-        title: "UI/UX Design Service",
-        description: "Beautiful and intuitive user interface designs that enhance user experience and engagement.",
-        price: 599,
-        originalPrice: 799,
-        category: 'design',
-        location: 'online',
-        rating: 4.9,
-        reviews: 203,
-        deliveryTime: 10,
-        seller: {
-          verified: false,
-        },
-        images: [
-          "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=500&h=350&fit=crop",
-          "https://images.unsplash.com/photo-1558655146-364adaf1fcc9?w=500&h=350&fit=crop"
-        ],
-        tags: ["🎨 Creative", "⭐ Top Rated"],
-        featured: true,
-        negotiable: true,
-        createdAt: "2024-01-10"
+    const fetchServices = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await axios.get('https://api.watukazi.com/api/v1/services');
+        
+        if (response.data && response.data.services) {
+          const apiServices = response.data.services.map(service => {
+            // Safely parse images and tags
+            const images = safeJsonParse(service.images);
+            const tags = safeJsonParse(service.tags);
+            
+            // Get seller name safely
+            const sellerName = service.creator?.businessName || 
+                             (service.creator?.firstName && service.creator?.lastName 
+                               ? `${service.creator.firstName} ${service.creator.lastName}`
+                               : 'Unknown Seller');
+            
+            return {
+              id: service.id,
+              title: service.title || 'Untitled Service',
+              description: service.description || 'No description available',
+              price: service.budget || 0,
+              originalPrice: service.budget ? Math.round(service.budget * 1.2) : 0,
+              category: service.categoryId || 'other',
+              location: service.location || 'Location not specified',
+              rating: service.avgRating || 0,
+              reviews: service.ratingCount || 0,
+              deliveryTime: service.estimatedDuration || 7,
+              seller: {
+                name: sellerName,
+                verified: service.creator?.role === 'provider'
+              },
+              images: images,
+              tags: tags,
+              featured: service.featured || false,
+              negotiable: service.budgetType === 'negotiable',
+              createdAt: service.createdAt || new Date().toISOString(),
+              views: service.views || 0,
+              type: service.type || 'provider_service',
+              currency: service.currency || 'USD',
+              budgetType: service.budgetType || 'fixed'
+            };
+          });
+          
+          setServices(apiServices);
+          setFilteredServices(apiServices);
+        } else {
+          throw new Error('No services data found in response');
+        }
+      } catch (err) {
+        console.error('Error fetching services:', err);
+        setError('Failed to load services. Please try again later.');
+        // Fallback to empty array
+        setServices([]);
+        setFilteredServices([]);
+      } finally {
+        setLoading(false);
       }
-    ];
+    };
 
-    setServices(sampleServices);
-    setFilteredServices(sampleServices);
-    setLoading(false);
+    fetchServices();
   }, []);
 
   // Filter and sort services
@@ -210,11 +212,16 @@ const ServiceList = () => {
       
       const matchesPrice = service.price >= filters.priceRange[0] && service.price <= filters.priceRange[1];
       
-      const matchesLocation = filters.location === 'all' || service.location === filters.location;
+      const matchesLocation = filters.location === 'all' || 
+                            service.location.toLowerCase().includes(filters.location.toLowerCase());
       
       const matchesRating = service.rating >= filters.rating;
 
-      return matchesSearch && matchesCategory && matchesPrice && matchesLocation && matchesRating;
+      const matchesSellerType = filters.sellerType === 'all' || 
+                               (filters.sellerType === 'provider' && service.type === 'provider_service') ||
+                               (filters.sellerType === 'client' && service.type === 'client_request');
+
+      return matchesSearch && matchesCategory && matchesPrice && matchesLocation && matchesRating && matchesSellerType;
     });
 
     // Sort results
@@ -232,7 +239,7 @@ const ServiceList = () => {
         results.sort((a, b) => b.rating - a.rating);
         break;
       case 'popular':
-        results.sort((a, b) => b.reviews - a.reviews);
+        results.sort((a, b) => b.views - a.views);
         break;
       default: // featured
         results.sort((a, b) => (b.featured === a.featured) ? 0 : b.featured ? -1 : 1);
@@ -260,13 +267,30 @@ const ServiceList = () => {
   const clearFilters = () => {
     setFilters({
       category: 'all',
-      priceRange: [0, 5000],
+      priceRange: [0, 500000],
       location: 'all',
       rating: 0,
       deliveryTime: 30,
       sellerType: 'all'
     });
     setSearchTerm('');
+  };
+
+  // Format currency
+  const formatPrice = (price, currency = 'USD') => {
+    if (currency === 'TSH') {
+      return `TSh ${price?.toLocaleString() || '0'}`;
+    }
+    return `$${price?.toLocaleString() || '0'}`;
+  };
+
+  // Get default image if no images available
+  const getServiceImage = (images) => {
+    if (images && images.length > 0 && images[0]) {
+      return images[0];
+    }
+    // Fallback images based on service type
+    return "https://images.unsplash.com/photo-1558655146-364adaf1fcc9?w=500&h=350&fit=crop";
   };
 
   // Animation variants
@@ -300,21 +324,36 @@ const ServiceList = () => {
       <Link to={`/service/${service.id}`} className="block">
         <div className="relative">
           <img 
-            src={service.images[0]} 
+            src={getServiceImage(service.images)} 
             alt={service.title}
             className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={(e) => {
+              e.target.src = "https://images.unsplash.com/photo-1558655146-364adaf1fcc9?w=500&h=350&fit=crop";
+            }}
           />
           
           {/* Badges */}
           <div className="absolute top-3 left-3 flex flex-wrap gap-1">
-            {service.tags.map((tag, index) => (
-              <span 
-                key={index}
-                className="px-2 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-semibold text-gray-800"
-              >
-                {tag}
+            {service.type === 'provider_service' && (
+              <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
+                Provider Service
               </span>
-            ))}
+            )}
+            {service.type === 'client_request' && (
+              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
+                Client Request
+              </span>
+            )}
+            {service.featured && (
+              <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">
+                🔥 Featured
+              </span>
+            )}
+            {service.negotiable && (
+              <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-semibold">
+                💎 {t.negotiable}
+              </span>
+            )}
           </div>
 
           {/* Favorite Button */}
@@ -334,14 +373,18 @@ const ServiceList = () => {
           {/* Price */}
           <div className="absolute bottom-3 left-3 bg-black/80 text-white px-3 py-2 rounded-2xl backdrop-blur-sm">
             <div className="flex items-center gap-1">
-              <span className="font-bold text-lg">${service.price}</span>
+              <span className="font-bold text-lg">
+                {formatPrice(service.price, service.currency)}
+              </span>
               {service.originalPrice > service.price && (
-                <span className="text-sm line-through text-gray-300">${service.originalPrice}</span>
+                <span className="text-sm line-through text-gray-300">
+                  {formatPrice(service.originalPrice, service.currency)}
+                </span>
               )}
             </div>
-            {service.negotiable && (
-              <div className="text-xs text-green-300">{t.negotiable}</div>
-            )}
+            <div className="text-xs">
+              {service.negotiable ? t.negotiable : t.fixedPrice}
+            </div>
           </div>
         </div>
 
@@ -358,7 +401,7 @@ const ServiceList = () => {
             <div className="flex items-center gap-1">
               <Eye className="w-4 h-4 text-gray-400" />
               <span className="text-sm text-gray-600">
-                1000+ {t.views}
+                {service.views} {t.views}
               </span>
             </div>
             
@@ -381,7 +424,9 @@ const ServiceList = () => {
               {service.seller.verified && (
                 <Verified className="w-4 h-4 text-blue-500" />
               )}
-              <span className="text-sm text-gray-600">{service.seller.name}</span>
+              <span className="text-sm text-gray-600 truncate max-w-[100px]">
+                {service.seller.name}
+              </span>
             </div>
           </div>
 
@@ -399,6 +444,30 @@ const ServiceList = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-24 h-24 mx-auto mb-4 bg-red-100 rounded-3xl flex items-center justify-center">
+            <X className="w-12 h-12 text-red-500" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">
+            Error Loading Services
+          </h3>
+          <p className="text-gray-600 mb-6 max-w-md mx-auto">
+            {error}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors duration-200"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
@@ -462,13 +531,14 @@ const ServiceList = () => {
                 <h3 className="font-medium text-gray-800 mb-3">{t.priceRange}</h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm text-gray-600">
-                    <span>${filters.priceRange[0]}</span>
-                    <span>${filters.priceRange[1]}</span>
+                    <span>{formatPrice(filters.priceRange[0])}</span>
+                    <span>{formatPrice(filters.priceRange[1])}</span>
                   </div>
                   <input
                     type="range"
                     min="0"
-                    max="5000"
+                    max="500000"
+                    step="1000"
                     value={filters.priceRange[1]}
                     onChange={(e) => setFilters(prev => ({...prev, priceRange: [0, parseInt(e.target.value)]}))}
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
@@ -476,7 +546,37 @@ const ServiceList = () => {
                 </div>
               </div>
 
-             
+              {/* Rating Filter */}
+              <div className="mb-6">
+                <h3 className="font-medium text-gray-800 mb-3">{t.rating}</h3>
+                <div className="space-y-2">
+                  {[4, 3, 2, 1].map(rating => (
+                    <button
+                      key={rating}
+                      onClick={() => setFilters(prev => ({...prev, rating}))}
+                      className={`w-full flex items-center gap-2 p-2 rounded-lg transition-colors duration-200 ${
+                        filters.rating === rating
+                          ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                          : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-4 h-4 ${
+                              i < rating
+                                ? 'fill-yellow-400 text-yellow-400'
+                                : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm">{rating}+</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </aside>
 

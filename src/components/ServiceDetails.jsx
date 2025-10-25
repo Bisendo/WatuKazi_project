@@ -2,23 +2,21 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useLanguage } from './LanguageContext';
+import axios from 'axios';
 import {
   ArrowLeft,
   Star,
   Heart,
   Clock,
   Verified,
-  Shield,
   Calendar,
   MessageCircle,
   Phone,
   Share2,
   Flag,
-  CheckCircle,
-  Users,
-
+ 
   Eye,
-  Award
+  
 } from 'lucide-react';
 
 const ServiceDetail = () => {
@@ -28,6 +26,7 @@ const ServiceDetail = () => {
   const [service, setService] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [favorites, setFavorites] = useState(new Set());
   const [similarServices, setSimilarServices] = useState([]);
 
@@ -51,7 +50,13 @@ const ServiceDetail = () => {
       whatIncluded: "What's Included",
       online: "Online",
       available: "Available",
-      limited: "Limited Spots"
+      limited: "Limited Spots",
+      serviceNotFound: "Service Not Found",
+      serviceNotFoundDesc: "The service you're looking for doesn't exist.",
+      tryAgain: "Try Again",
+      errorLoading: "Error Loading Service",
+      fixedPrice: "Fixed Price",
+      budget: "Budget"
     },
     sw: {
       backToServices: "Rudi kwenye Huduma",
@@ -67,172 +72,143 @@ const ServiceDetail = () => {
       sellerInfo: "Maelezo ya Muuzaji",
       contactOptions: "Chaguzi za Mawasiliano",
       shareService: "Sambaza Huduma",
-      reportService: "Ripoti Huduma",
       similarServices: "Huduma Zinazofanana",
       whatIncluded: "Yaliyomo",
-      securePayment: "Malipo Salama",
-      moneyBack: "Hakikisha ya Rudi Fedha",
-      support: "Usaidizi 24/7",
       online: "Mtandaoni",
       available: "Inapatikana",
-      limited: "Nafasi Chache"
+      limited: "Nafasi Chache",
+      serviceNotFound: "Huduma Haipatikani",
+      serviceNotFoundDesc: "Huduma unayotafuta haipo.",
+      tryAgain: "Jaribu Tena",
+      errorLoading: "Hitilafu ya Kupakia Huduma",
+      fixedPrice: "Bei Maalum",
+      budget: "Bajeti"
     }
   };
 
   const t = translations[language];
 
-  // Sample locations
-  const locations = [
-    { id: 'all', name: 'All Locations' },
-    { id: 'dar', name: 'Dar es Salaam' },
-    { id: 'nairobi', name: 'Nairobi' },
-    { id: 'kampala', name: 'Kampala' },
-    { id: 'online', name: 'Online' }
-  ];
-
-  // Sample services data (in a real app, this would come from an API)
-  const sampleServices = [
-    {
-      id: 1,
-      title: "Professional Website Development",
-      description: "Custom responsive websites built with modern technologies. Perfect for businesses looking to establish online presence. We provide complete solutions including design, development, and deployment with ongoing support and maintenance.",
-      price: 899,
-      originalPrice: 1200,
-      category: 'web',
-      location: 'dar',
-      rating: 4.8,
-      reviews: 127,
-      deliveryTime: 14,
-      seller: {
-        name: "Tech Solutions Ltd",
-        verified: true,
-        rating: 4.9,
-        joined: "2022",
-        online: true,
-        completedProjects: 89,
-        responseRate: 98,
-        description: "Professional web development agency with 5+ years of experience delivering high-quality solutions."
-      },
-      images: [
-        "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&h=500&fit=crop",
-        "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=500&fit=crop",
-        "https://images.unsplash.com/photo-1547658719-da2b51169166?w=800&h=500&fit=crop"
-      ],
-      tags: ["🔥 Popular", "⚡ Fast Delivery", "💎 Premium", "Responsive Design", "SEO Friendly"],
-      featured: true,
-      negotiable: true,
-      createdAt: "2024-01-15",
-      whatsIncluded: [
-        "Custom Website Design",
-        "Responsive Development",
-        "SEO Optimization",
-        "1 Year Hosting",
-        "6 Months Support",
-        "Mobile App Version"
-      ]
-    },
-    {
-      id: 2,
-      title: "Mobile App Development",
-      description: "Cross-platform mobile applications for iOS and Android using React Native and Flutter.",
-      price: 1500,
-      originalPrice: 2000,
-      category: 'mobile',
-      location: 'nairobi',
-      rating: 4.6,
-      reviews: 89,
-      deliveryTime: 21,
-      seller: {
-        name: "App Masters",
-        verified: true,
-        rating: 4.7,
-        joined: "2021",
-        online: false,
-        completedProjects: 67,
-        responseRate: 95,
-        description: "Mobile app specialists creating stunning cross-platform applications."
-      },
-      images: [
-        "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=800&h=500&fit=crop",
-        "https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=800&h=500&fit=crop"
-      ],
-      tags: ["📱 Cross-Platform", "🆕 New"],
-      featured: false,
-      negotiable: false,
-      createdAt: "2024-01-20",
-      whatsIncluded: [
-        "Cross-platform App",
-        "UI/UX Design",
-        "App Store Deployment",
-        "3 Months Support",
-        "Source Code",
-        "Documentation"
-      ]
-    },
-    {
-      id: 3,
-      title: "UI/UX Design Service",
-      description: "Beautiful and intuitive user interface designs that enhance user experience and engagement.",
-      price: 599,
-      originalPrice: 799,
-      category: 'design',
-      location: 'online',
-      rating: 4.9,
-      reviews: 203,
-      deliveryTime: 10,
-      seller: {
-        name: "Design Studio Pro",
-        verified: true,
-        rating: 5.0,
-        joined: "2020",
-        online: true,
-        completedProjects: 124,
-        responseRate: 99,
-        description: "Award-winning design studio focused on creating exceptional user experiences."
-      },
-      images: [
-        "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=800&h=500&fit=crop",
-        "https://images.unsplash.com/photo-1558655146-364adaf1fcc9?w=800&h=500&fit=crop"
-      ],
-      tags: ["🎨 Creative", "⭐ Top Rated"],
-      featured: true,
-      negotiable: true,
-      createdAt: "2024-01-10",
-      whatsIncluded: [
-        "Wireframing",
-        "UI Design",
-        "UX Research",
-        "Interactive Prototype",
-        "Design System",
-        "Assets Export"
-      ]
+  // Safe JSON parsing function
+  const safeJsonParse = (str, fallback = []) => {
+    if (!str) return fallback;
+    try {
+      if (Array.isArray(str)) return str;
+      const parsed = JSON.parse(str);
+      return Array.isArray(parsed) ? parsed : fallback;
+    } catch (error) {
+      console.warn('JSON parsing error:', error, 'String:', str);
+      return fallback;
     }
-  ];
+  };
 
+  // Format currency
+  const formatPrice = (price, currency = 'USD') => {
+    if (currency === 'TSH') {
+      return `TSh ${price?.toLocaleString() || '0'}`;
+    }
+    return `$${price?.toLocaleString() || '0'}`;
+  };
+
+  // Get default image if no images available
+  const getServiceImage = (images) => {
+    if (images && images.length > 0 && images[0]) {
+      return images[0];
+    }
+    return "https://images.unsplash.com/photo-1558655146-364adaf1fcc9?w=800&h=500&fit=crop";
+  };
+
+  // Fetch service details from API
   useEffect(() => {
-    // Simulate API call
-    const fetchService = () => {
-      setLoading(true);
-      setTimeout(() => {
-        const foundService = sampleServices.find(s => s.id === parseInt(id));
-        setService(foundService);
+    const fetchService = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-        // Find similar services (same category, excluding current)
-        if (foundService) {
-          const similar = sampleServices
-            .filter(s => s.category === foundService.category && s.id !== foundService.id)
-            .slice(0, 3);
-          setSimilarServices(similar);
+        // First, get all services to find the specific one and similar ones
+        const response = await axios.get('https://api.watukazi.com/api/v1/services');
+
+        if (response.data && response.data.services) {
+          const allServices = response.data.services.map(apiService => {
+            const images = safeJsonParse(apiService.images);
+            const tags = safeJsonParse(apiService.tags);
+
+            const sellerName = apiService.creator?.businessName ||
+              (apiService.creator?.firstName && apiService.creator?.lastName
+                ? `${apiService.creator.firstName} ${apiService.creator.lastName}`
+                : 'Unknown Seller');
+
+            return {
+              id: apiService.id,
+              title: apiService.title || 'Untitled Service',
+              description: apiService.description || 'No description available',
+              price: apiService.budget || 0,
+              originalPrice: apiService.budget ? Math.round(apiService.budget * 1.2) : 0,
+              category: apiService.categoryId || 'other',
+              location: apiService.location || 'Location not specified',
+              rating: apiService.avgRating || 0,
+              reviews: apiService.ratingCount || 0,
+              deliveryTime: apiService.estimatedDuration || 7,
+              seller: {
+                name: sellerName,
+                verified: apiService.creator?.role === 'provider',
+                rating: apiService.creator?.rating || 0,
+                joined: new Date(apiService.createdAt).getFullYear().toString(),
+                online: true,
+                completedProjects: apiService.totalBookings || 0,
+                responseRate: 95,
+                description: apiService.creator?.role === 'provider' ?
+                  `Professional ${apiService.creator.businessName || 'service provider'}` :
+                  'Client looking for services'
+              },
+              images: images,
+              tags: tags,
+              featured: apiService.featured || false,
+              negotiable: apiService.budgetType === 'negotiable',
+              createdAt: apiService.createdAt || new Date().toISOString(),
+              views: apiService.views || 0,
+              type: apiService.type || 'provider_service',
+              currency: apiService.currency || 'USD',
+              budgetType: apiService.budgetType || 'fixed',
+              whatsIncluded: [
+                "Professional Service",
+                "Quality Guarantee",
+                "Timely Delivery",
+                "Customer Support"
+              ]
+            };
+          });
+
+          // Find the current service
+          const foundService = allServices.find(s => s.id === id);
+          setService(foundService);
+
+          // Find similar services (same category, excluding current)
+          if (foundService) {
+            const similar = allServices
+              .filter(s => s.category === foundService.category && s.id !== foundService.id)
+              .slice(0, 3);
+            setSimilarServices(similar);
+          } else {
+            setError(t.serviceNotFound);
+          }
+        } else {
+          throw new Error('No services data found in response');
         }
-
+      } catch (err) {
+        console.error('Error fetching service:', err);
+        setError('Failed to load service details. Please try again later.');
+      } finally {
         setLoading(false);
-      }, 500);
+      }
     };
 
-    fetchService();
-  }, [id]);
+    if (id) {
+      fetchService();
+    }
+  }, [id, language]);
 
   const toggleFavorite = () => {
+    if (!service) return;
     setFavorites(prev => {
       const newFavorites = new Set(prev);
       if (newFavorites.has(service.id)) {
@@ -252,17 +228,45 @@ const ServiceDetail = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-24 h-24 mx-auto mb-4 bg-red-100 rounded-3xl flex items-center justify-center">
+            <Flag className="w-12 h-12 text-red-500" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">{t.errorLoading}</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <div className="flex gap-4 justify-center">
+            <button
+              onClick={() => navigate(-1)}
+              className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors duration-200"
+            >
+              {t.backToServices}
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors duration-200"
+            >
+              {t.tryAgain}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!service) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Service Not Found</h2>
-          <p className="text-gray-600 mb-6">The service you're looking for doesn't exist.</p>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">{t.serviceNotFound}</h2>
+          <p className="text-gray-600 mb-6">{t.serviceNotFoundDesc}</p>
           <Link
             to="/services"
             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors duration-200"
           >
-            Back to Services
+            {t.backToServices}
           </Link>
         </div>
       </div>
@@ -290,8 +294,8 @@ const ServiceDetail = () => {
               >
                 <Heart
                   className={`w-5 h-5 ${favorites.has(service.id)
-                      ? 'fill-red-500 text-red-500'
-                      : 'text-gray-600'
+                    ? 'fill-red-500 text-red-500'
+                    : 'text-gray-600'
                     }`}
                 />
               </button>
@@ -311,9 +315,12 @@ const ServiceDetail = () => {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-6">
               <div className="relative">
                 <img
-                  src={service.images[currentImageIndex]}
+                  src={getServiceImage(service.images)}
                   alt={service.title}
                   className="w-full h-96 object-cover"
+                  onError={(e) => {
+                    e.target.src = "https://images.unsplash.com/photo-1558655146-364adaf1fcc9?w=800&h=500&fit=crop";
+                  }}
                 />
 
                 {/* Image Navigation */}
@@ -340,14 +347,17 @@ const ServiceDetail = () => {
                         key={index}
                         onClick={() => setCurrentImageIndex(index)}
                         className={`flex-shrink-0 w-20 h-16 rounded-lg overflow-hidden border-2 transition-all duration-200 ${currentImageIndex === index
-                            ? 'border-blue-500'
-                            : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-blue-500'
+                          : 'border-gray-200 hover:border-gray-300'
                           }`}
                       >
                         <img
                           src={image}
                           alt={`${service.title} ${index + 1}`}
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.src = "https://images.unsplash.com/photo-1558655146-364adaf1fcc9?w=200&h=150&fit=crop";
+                          }}
                         />
                       </button>
                     ))}
@@ -366,23 +376,45 @@ const ServiceDetail = () => {
 
                 <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
                   <div className="flex items-center gap-1">
+                    <Clock className="w-4 h-4" />
+                    {service.deliveryTime} {t.days} {t.delivery}
                   </div>
                   <div className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
                     Listed {new Date(service.createdAt).toLocaleDateString()}
                   </div>
                   <div className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    {service.deliveryTime} {t.days} {t.delivery}
+                    <Eye className="w-4 h-4" />
+                    {service.views} views
                   </div>
                 </div>
 
                 {/* Tags */}
                 <div className="flex flex-wrap gap-2">
+                  {service.type === 'provider_service' && (
+                    <span className="px-3 py-1 bg-green-100 text-green-600 rounded-full text-sm font-semibold">
+                      Provider Service
+                    </span>
+                  )}
+                  {service.type === 'client_request' && (
+                    <span className="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-sm font-semibold">
+                      Client Request
+                    </span>
+                  )}
+                  {service.featured && (
+                    <span className="px-3 py-1 bg-yellow-100 text-yellow-600 rounded-full text-sm font-semibold">
+                      🔥 Featured
+                    </span>
+                  )}
+                  {service.negotiable && (
+                    <span className="px-3 py-1 bg-purple-100 text-purple-600 rounded-full text-sm font-semibold">
+                      💎 {t.negotiable}
+                    </span>
+                  )}
                   {service.tags.map((tag, index) => (
                     <span
                       key={index}
-                      className="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-sm font-semibold"
+                      className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm font-semibold"
                     >
                       {tag}
                     </span>
@@ -390,7 +422,33 @@ const ServiceDetail = () => {
                 </div>
               </div>
 
-
+              {/* Price Card */}
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-3xl font-bold text-gray-800">
+                        {formatPrice(service.price, service.currency)}
+                      </span>
+                      {service.originalPrice > service.price && (
+                        <span className="text-lg line-through text-gray-500">
+                          {formatPrice(service.originalPrice, service.currency)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {service.negotiable ? t.negotiable : t.fixedPrice}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                      <span className="font-semibold text-gray-800">{service.rating}</span>
+                    </div>
+                    <span className="text-gray-500">({service.reviews} {t.reviews})</span>
+                  </div>
+                </div>
+              </div>
 
               {/* Description */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
@@ -414,8 +472,8 @@ const ServiceDetail = () => {
                         <Verified className="w-5 h-5 text-blue-500" />
                       )}
                       <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm ${service.seller.online
-                          ? 'bg-green-100 text-green-600'
-                          : 'bg-gray-100 text-gray-600'
+                        ? 'bg-green-100 text-green-600'
+                        : 'bg-gray-100 text-gray-600'
                         }`}>
                         <div className={`w-2 h-2 rounded-full ${service.seller.online ? 'bg-green-500' : 'bg-gray-400'
                           }`} />
@@ -450,37 +508,7 @@ const ServiceDetail = () => {
                 </div>
               </div>
 
-              {/* Similar Services */}
-              {similarServices.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                  <h2 className="text-xl font-semibold text-gray-800 mb-6">{t.similarServices}</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {similarServices.map(similarService => (
-                      <Link
-                        key={similarService.id}
-                        to={`/service/${similarService.id}`}
-                        className="block bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors duration-200 border border-gray-200"
-                      >
-                        <img
-                          src={similarService.images[0]}
-                          alt={similarService.title}
-                          className="w-full h-32 object-cover rounded-lg mb-3"
-                        />
-                        <h3 className="font-semibold text-gray-800 mb-2 line-clamp-2">
-                          {similarService.title}
-                        </h3>
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-gray-800">${similarService.price}</span>
-                          <div className="flex items-center gap-1">
-                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                            <span className="text-sm text-gray-600">{similarService.rating}</span>
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
+
             </div>
           </div>
 
@@ -504,7 +532,6 @@ const ServiceDetail = () => {
                 </div>
               </div>
 
-
               {/* Service Stats */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
                 <h3 className="font-semibold text-gray-800 mb-4">Service Statistics</h3>
@@ -521,9 +548,12 @@ const ServiceDetail = () => {
                     <span className="text-gray-600">Delivery Time</span>
                     <span className="font-semibold text-gray-800">{service.deliveryTime} days</span>
                   </div>
+
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Category</span>
-                    <span className="font-semibold text-gray-800 capitalize">{service.category}</span>
+                    <span className="text-gray-600">Service Type</span>
+                    <span className="font-semibold text-gray-800 capitalize">
+                      {service.type === 'provider_service' ? 'Provider Service' : 'Client Request'}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600">Last Updated</span>
