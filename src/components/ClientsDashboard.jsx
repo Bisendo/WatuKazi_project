@@ -316,14 +316,7 @@ const ClientDashboard = () => {
       color: 'purple',
       description: 'Unread messages'
     },
-    {
-      label: 'Service Providers',
-      value: statistics?.totalProviders?.toString() || '8',
-      change: '+2',
-      icon: Users,
-      color: 'orange',
-      description: 'Active providers'
-    }
+   
   ]
 
   if (loading && !hasUserData) {
@@ -341,80 +334,104 @@ const ClientDashboard = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Enhanced Header */}
       <header className="bg-white shadow-sm border-b sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-8">
-              <div className="flex items-center">
-                <img
-                  src={logo}
-                  alt="WatuKazi Logo"
-                  className="h-8 w-auto sm:h-10 object-contain rounded-full"
-                />
-                <span className="ml-2 text-xl font-bold text-gray-900">WatuKazi</span>
-              </div>
-              
-              {/* Navigation Tabs */}
-              <nav className="hidden md:flex space-x-6">
-                {['Overview', 'Services', 'Messages', 'Transactions', 'Reviews'].map((item) => (
-                  <button
-                    key={item}
-                    className={`font-medium text-sm transition-colors ${
-                      activeTab === item.toLowerCase() 
-                        ? 'text-blue-600 border-b-2 border-blue-600' 
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                    onClick={() => setActiveTab(item.toLowerCase())}
-                  >
-                    {item}
-                  </button>
-                ))}
-              </nav>
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="flex justify-between items-center h-16">
+      <div className="flex items-center space-x-8">
+        <div className="flex items-center">
+          <img
+            src={logo}
+            alt="WatuKazi Logo"
+            className="h-8 w-auto sm:h-10 object-contain rounded-full"
+          />
+          <span className="ml-2 text-xl font-bold text-gray-900">WatuKazi</span>
+        </div>
+        
+        {/* Navigation Tabs */}
+        <nav className="hidden md:flex space-x-6">
+          {[ 'Services', 'Messages', 'Request', 'Subscription'].map((item) => (
+            <button
+              key={item}
+              className={`font-medium text-sm transition-colors ${
+                activeTab === item.toLowerCase() 
+                  ? 'text-blue-600 border-b-2 border-blue-600' 
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+              onClick={() => setActiveTab(item.toLowerCase())}
+            >
+              {item}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      <div className="flex items-center space-x-4">
+        {/* Search Bar */}
+        <div className="hidden lg:block relative">
+          <Search className="h-4 w-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search services, providers..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64 text-sm"
+          />
+        </div>
+
+        {/* Action Buttons */}
+        <button className="relative p-2 text-gray-600 hover:text-gray-900 bg-gray-100 rounded-lg">
+          <Bell className="h-5 w-5" />
+          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+        </button>
+
+        <button className="hidden sm:flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+          <Plus className="h-4 w-4" />
+          <span className="text-sm font-medium">Add Service</span>
+        </button>
+
+        {/* User Menu */}
+        <div className="relative group">
+          <div className="flex items-center space-x-3 cursor-pointer">
+            <img
+              className="h-8 w-8 rounded-full border-2 border-gray-200"
+              src={
+                userInfo.profilePicture
+                  ? userInfo.profilePicture
+                  : `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo.userName)}&background=3b82f6&color=fff`
+              }
+              alt="Profile"
+            />
+            <div className="hidden sm:block text-left">
+              <p className="text-sm font-medium text-gray-900">{userInfo.userName}</p>
+              <p className="text-xs text-gray-500">{userInfo.role}</p>
             </div>
-
-            <div className="flex items-center space-x-4">
-              {/* Search Bar */}
-              <div className="hidden lg:block relative">
-                <Search className="h-4 w-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search services, providers..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64 text-sm"
-                />
-              </div>
-
-              {/* Action Buttons */}
-              <button className="relative p-2 text-gray-600 hover:text-gray-900 bg-gray-100 rounded-lg">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+          </div>
+          
+          {/* Dropdown Menu */}
+          <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+            <div className="py-1">
+              <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                <User className="h-4 w-4 mr-2" />
+                Profile
               </button>
-
-              <button className="hidden sm:flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                <Plus className="h-4 w-4" />
-                <span className="text-sm font-medium">Add Service</span>
+              <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
               </button>
-
-              {/* User Menu */}
-              <div className="flex items-center space-x-3">
-                <img
-                  className="h-8 w-8 rounded-full border-2 border-gray-200"
-                  src={
-                    userInfo.profilePicture
-                      ? userInfo.profilePicture
-                      : `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo.userName)}&background=3b82f6&color=fff`
-                  }
-                  alt="Profile"
-                />
-                <div className="hidden sm:block text-left">
-                  <p className="text-sm font-medium text-gray-900">{userInfo.userName}</p>
-                  <p className="text-xs text-gray-500">{userInfo.role}</p>
-                </div>
-              </div>
+              <div className="border-t border-gray-100 my-1"></div>
+              <button 
+                className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                onClick={handleLogout} // Add your logout function here
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Log Out
+              </button>
             </div>
           </div>
         </div>
-      </header>
+      </div>
+    </div>
+  </div>
+</header>
 
       {/* Error Banner */}
       {error && (
@@ -471,7 +488,7 @@ const ClientDashboard = () => {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {stats.map((stat, index) => (
               <div key={index} className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
                 <div className="flex items-center justify-between">
@@ -576,47 +593,7 @@ const ClientDashboard = () => {
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Recent Transactions */}
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Recent Transactions</h2>
-                <button className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center">
-                  View All
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </button>
-              </div>
-              <div className="space-y-4">
-                {recentTransactions.map((transaction) => (
-                  <div key={transaction.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                    <div className="flex items-center space-x-4">
-                      <div className={`p-2 rounded-lg ${
-                        transaction.type === 'payment' ? 'bg-blue-100' : 'bg-green-100'
-                      }`}>
-                        <CreditCard className={`h-5 w-5 ${
-                          transaction.type === 'payment' ? 'text-blue-600' : 'text-green-600'
-                        }`} />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900 text-sm">{transaction.service}</p>
-                        <p className="text-gray-500 text-xs">{transaction.date}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <span className="font-bold text-gray-900">${transaction.amount}</span>
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        transaction.status === 'completed' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {transaction.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            </div>            
           </div>
 
           {/* Sidebar */}
