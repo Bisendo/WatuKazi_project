@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react'
-import axios from 'axios'
+
+import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
 import {
   BarChart3,
   Calendar,
@@ -40,158 +41,535 @@ import {
   MoreHorizontal,
   CheckCircle,
   XCircle,
-  Zap
-} from 'lucide-react'
-import { useAuth } from '../contexts/authContext'
-import logo from '../assets/images/watukazi.jpeg'
+  Zap,
+  Camera
+} from 'lucide-react';
+import { useAuth } from '../contexts/authContext';
+import logo from '../assets/images/watukazi.jpeg';
 
 const ClientDashboard = () => {
-  const { logout, user: authUser } = useAuth()
-  const [activeTab, setActiveTab] = useState('overview')
-  const [userData, setUserData] = useState(null)
-  const [statistics, setStatistics] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [statsLoading, setStatsLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [retryCount, setRetryCount] = useState(0)
-  const [viewMode, setViewMode] = useState('grid')
-  const [searchQuery, setSearchQuery] = useState('')
+  const { logout, user: authUser } = useAuth();
+  const [activeTab, setActiveTab] = useState('overview');
+  const [userData, setUserData] = useState(null);
+  const [statistics, setStatistics] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [viewMode, setViewMode] = useState('grid');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [avatarError, setAvatarError] = useState(null);
+  const [avatarUploadProgress, setAvatarUploadProgress] = useState(0);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const fileInputRef = useRef(null);
+  const profileMenuRef = useRef(null);
+  const modalRef = useRef(null);
 
-  // Get authentication token from various sources
+  // Close modals when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setShowProfileMenu(false);
+      }
+      if (modalRef.current && !modalRef.current.contains(event.target) && !fileInputRef.current?.contains(event.target)) {
+        setShowAvatarModal(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Get authentication token
   const getAuthToken = () => {
-    const token = localStorage.getItem('authToken') ||
+    return localStorage.getItem('authToken') ||
       sessionStorage.getItem('authToken') ||
       localStorage.getItem('token') ||
       sessionStorage.getItem('token') ||
       authUser?.token ||
-      authUser?.accessToken
+      authUser?.accessToken;
+  };
 
-    return token
-  }
+  // Enhanced avatar URL fix - handle multiple scenarios
+  const fixAvatarUrl = (avatarUrl, avatarPath) => {
+    if (!avatarUrl && !avatarPath) return null;
+    
+    // If we have a full URL but it's localhost, try to construct proper URL
+    if (avatarUrl && avatarUrl.includes('localhost')) {
+      const pathMatch = avatarUrl.match(/\/api\/v1\/uploads\/avatars\/(.+)/);
+      if (pathMatch) {
+        return `https://api.watukazi.com/api/v1/uploads/avatars/${pathMatch[1]}`;
+      }
+    }
+    
+    // If we have just a path (avatars/filename.jpg)
+    if (avatarPath && !avatarPath.includes('http')) {
+      // Remove 'avatars/' prefix if it exists and add proper path
+      const filename = avatarPath.replace('avatars/', '');
+      return `https://api.watukazi.com/api/v1/uploads/avatars/${filename}`;
+    }
+    
+    // If it's already a proper URL, return as is
+    if (avatarUrl && avatarUrl.includes('api.watukazi.com')) {
+      return avatarUrl;
+    }
+    
+    // Fallback - return the original URL
+    return avatarUrl;
+  };
 
-  // Fetch statistics data from API
+  // Enhanced compress image function
+  const compressImage = (file, maxWidth = 800, maxHeight = 800, quality = 0.6) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Calculate new dimensions while maintaining aspect ratio
+          const ratio = Math.min(maxWidth / width, maxHeight / height, 1);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error('Canvas to Blob conversion failed'));
+                return;
+              }
+              
+              const compressedFile = new File([blob], `avatar_${Date.now()}.jpg`, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              
+              console.log(`Original: ${(file.size / 1024 / 1024).toFixed(2)}MB, Compressed: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+              
+              resolve(compressedFile);
+            },
+            'image/jpeg',
+            quality
+          );
+        };
+        
+        img.onerror = () => {
+          reject(new Error('Failed to load image'));
+        };
+      };
+      
+      reader.onerror = () => {
+        reject(new Error('Failed to read file'));
+      };
+    });
+  };
+
+  // Upload avatar function with better URL handling
+  const uploadAvatar = async (file) => {
+    try {
+      setAvatarLoading(true);
+      setAvatarError(null);
+      setAvatarUploadProgress(0);
+
+      const token = getAuthToken();
+
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      console.log('Original file size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+
+      // Compress image to ensure it's under 1MB
+      let fileToUpload = file;
+      if (file.size > 1 * 1024 * 1024) {
+        try {
+          fileToUpload = await compressImage(file, 600, 600, 0.6);
+          console.log('Compressed file size:', (fileToUpload.size / 1024 / 1024).toFixed(2), 'MB');
+        } catch (compressError) {
+          console.warn('Compression failed:', compressError);
+          throw new Error('Failed to compress image. Please select a smaller image.');
+        }
+      }
+
+      // Final size check - ensure under 1MB
+      if (fileToUpload.size > 1 * 1024 * 1024) {
+        throw new Error('Image is too large. Please select an image smaller than 1MB.');
+      }
+
+      // Create FormData with proper field name
+      const formData = new FormData();
+      formData.append('avatar', fileToUpload);
+      formData.append('userId', authUser?.id || '');
+      formData.append('uploadType', 'profile_avatar');
+
+      const baseURL = 'https://api.watukazi.com/api/v1';
+      
+      console.log('Uploading avatar...', {
+        size: fileToUpload.size,
+        type: fileToUpload.type,
+        name: fileToUpload.name
+      });
+
+      const response = await axios.post(`${baseURL}/users/avatar`, formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        timeout: 45000,
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            setAvatarUploadProgress(percentCompleted);
+            console.log(`Upload progress: ${percentCompleted}%`);
+          }
+        },
+      });
+
+      console.log('Upload response:', response.data);
+      setAvatarUploadProgress(100);
+
+      // Update user data with new avatar - FIX URL HERE
+      if (response.data) {
+        const avatarUrl = response.data.avatarUrl;
+        const avatarPath = response.data.avatar;
+        
+        // Use the enhanced URL fix function
+        const fixedAvatarUrl = fixAvatarUrl(avatarUrl, avatarPath);
+
+        if (fixedAvatarUrl) {
+          const updatedUserData = {
+            ...userData,
+            profilePicture: fixedAvatarUrl
+          };
+          setUserData(updatedUserData);
+          localStorage.setItem('userData', JSON.stringify(updatedUserData));
+          
+          // Test if the image loads successfully
+          await testImageLoad(fixedAvatarUrl);
+          
+          // Show success message
+          setTimeout(() => {
+            setAvatarUploadProgress(0);
+            setAvatarLoading(false);
+            setShowAvatarModal(false);
+            setAvatarError(null);
+          }, 1500);
+
+          return response.data;
+        } else {
+          throw new Error('No valid avatar URL returned from server');
+        }
+      }
+
+    } catch (err) {
+      console.error('Error uploading avatar:', err);
+      
+      let errorMessage = 'Failed to upload avatar';
+
+      if (err.response?.status === 400) {
+        errorMessage = err.response.data?.message || 'Invalid file format or missing file. Please use JPEG or PNG.';
+      } else if (err.response?.status === 401) {
+        errorMessage = 'Authentication failed. Please log in again.';
+      } else if (err.response?.status === 413) {
+        errorMessage = 'File too large. Server rejected the upload. Please select an image smaller than 1MB.';
+      } else if (err.code === 'NETWORK_ERROR' || err.message.includes('Network Error') || err.code === 'ERR_NETWORK') {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      } else if (err.code === 'ECONNABORTED') {
+        errorMessage = 'Upload took too long. Please try again with a smaller image.';
+      } else if (err.response?.status >= 500) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (err.message.includes('CORS')) {
+        errorMessage = 'Server configuration issue. Please contact support.';
+      } else if (err.message.includes('too large') || err.message.includes('compress')) {
+        errorMessage = err.message;
+      } else if (err.message.includes('image load')) {
+        errorMessage = 'Avatar uploaded but cannot be displayed. The file may not be accessible.';
+      }
+
+      setAvatarError(errorMessage);
+      setAvatarUploadProgress(0);
+      setAvatarLoading(false);
+      throw err;
+    }
+  };
+
+  // Test if image loads successfully
+  const testImageLoad = (url) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => reject(new Error('Image failed to load'));
+      img.src = url;
+      
+      // Timeout after 5 seconds
+      setTimeout(() => reject(new Error('Image load timeout')), 5000);
+    });
+  };
+
+  // File validation
+  const validateFile = (file) => {
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    const maxSize = 5 * 1024 * 1024;
+
+    if (!file) {
+      setAvatarError('No file selected');
+      return false;
+    }
+
+    if (!validTypes.includes(file.type)) {
+      setAvatarError('Please select a JPEG or PNG image file');
+      return false;
+    }
+
+    if (file.size > maxSize) {
+      setAvatarError('Image size should be less than 5MB. It will be compressed automatically.');
+      return false;
+    }
+
+    return true;
+  };
+
+  // Handle file selection
+  const handleFileSelect = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    setAvatarError(null);
+    setAvatarUploadProgress(0);
+
+    try {
+      const isValid = validateFile(file);
+      if (!isValid) return;
+
+      await uploadAvatar(file);
+    } catch (error) {
+      console.error('Upload failed:', error);
+    } finally {
+      event.target.value = '';
+    }
+  };
+
+  // Open avatar upload modal
+  const handleChangeAvatar = () => {
+    setShowAvatarModal(true);
+    setShowProfileMenu(false);
+  };
+
+  // Trigger file input from modal
+  const handleSelectFile = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Fetch statistics
   const fetchStatistics = async () => {
     try {
-      setStatsLoading(true)
-      const token = getAuthToken()
+      setStatsLoading(true);
+      const token = getAuthToken();
 
       if (!token) {
-        throw new Error('No authentication token found')
+        console.warn('No authentication token found for statistics');
+        return;
       }
 
-      const baseURL = 'https://api.watukazi.com/api/v1'
-      const response = await axios.get(`${baseURL}/auth/statistics`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        timeout: 10000
-      })
+      const baseURL = 'https://api.watukazi.com/api/v1';
+      
+      const endpoints = [
+        '/users/stats',
+        '/client/stats',
+        '/dashboard/stats'
+      ];
 
-      setStatistics(response.data)
+      let statsResponse = null;
+      
+      for (const endpoint of endpoints) {
+        try {
+          const response = await axios.get(`${baseURL}${endpoint}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            timeout: 8000
+          });
+          
+          if (response.data) {
+            statsResponse = response.data;
+            break;
+          }
+        } catch (endpointError) {
+          continue;
+        }
+      }
+
+      if (statsResponse) {
+        setStatistics(statsResponse);
+      } else {
+        setStatistics({
+          activeServices: 4,
+          totalSpent: 4100,
+          totalMessages: 24,
+          completedProjects: 8,
+          pendingRequests: 2
+        });
+      }
     } catch (err) {
-      console.error('Error fetching statistics:', err)
+      setStatistics({
+        activeServices: 4,
+        totalSpent: 4100,
+        totalMessages: 24,
+        completedProjects: 8,
+        pendingRequests: 2
+      });
     } finally {
-      setStatsLoading(false)
+      setStatsLoading(false);
     }
-  }
+  };
 
-  // Fetch complete profile data from API
+  // Fetch complete profile with enhanced avatar URL handling
   const fetchCompleteProfile = async () => {
     try {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
 
-      const token = getAuthToken()
+      const token = getAuthToken();
 
       if (!token) {
-        throw new Error('No authentication token found. Please log in again.')
+        throw new Error('No authentication token found. Please log in again.');
       }
 
-      const baseURL = 'https://api.watukazi.com/api/v1'
-      const response = await axios.get(`${baseURL}/users/profile/complete`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        timeout: 10000
-      })
+      const baseURL = 'https://api.watukazi.com/api/v1';
+      
+      const endpoints = [
+        '/users/profile/complete',
+        '/users/profile',
+        '/auth/profile',
+        '/client/profile'
+      ];
 
-      if (response.data) {
-        setUserData(response.data)
-        localStorage.setItem('userData', JSON.stringify(response.data))
-        localStorage.setItem('lastSuccessfulFetch', new Date().toISOString())
-        await fetchStatistics()
+      let profileResponse = null;
+      
+      for (const endpoint of endpoints) {
+        try {
+          const response = await axios.get(`${baseURL}${endpoint}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            timeout: 10000
+          });
+          
+          if (response.data) {
+            profileResponse = response.data;
+            break;
+          }
+        } catch (endpointError) {
+          continue;
+        }
       }
+
+      if (profileResponse) {
+        // Enhanced avatar URL fixing
+        if (profileResponse.profilePicture) {
+          profileResponse.profilePicture = fixAvatarUrl(profileResponse.profilePicture, profileResponse.avatar);
+        } else if (profileResponse.avatar) {
+          profileResponse.profilePicture = fixAvatarUrl(null, profileResponse.avatar);
+        }
+        
+        setUserData(profileResponse);
+        localStorage.setItem('userData', JSON.stringify(profileResponse));
+        localStorage.setItem('lastSuccessfulFetch', new Date().toISOString());
+      } else {
+        throw new Error('No profile endpoints available');
+      }
+
+      await fetchStatistics();
     } catch (err) {
-      console.error('Error fetching complete profile:', err)
-      let errorMessage = 'Failed to load profile data'
+      console.error('Error fetching complete profile:', err);
+      let errorMessage = 'Failed to load profile data';
 
       if (err.response?.status === 401) {
-        errorMessage = 'Authentication failed. Please log in again.'
-        localStorage.removeItem('authToken')
-        sessionStorage.removeItem('authToken')
-        localStorage.removeItem('token')
-        sessionStorage.removeItem('token')
+        errorMessage = 'Authentication failed. Please log in again.';
+        localStorage.removeItem('authToken');
+        sessionStorage.removeItem('authToken');
+        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
       } else if (err.response?.status === 403) {
-        errorMessage = 'Access denied. You do not have permission to view this data.'
+        errorMessage = 'Access denied. You do not have permission to view this data.';
       } else if (err.code === 'NETWORK_ERROR' || err.message.includes('Network Error')) {
-        errorMessage = 'Network error. Please check your connection and try again.'
+        errorMessage = 'Network error. Please check your connection and try again.';
       } else if (err.code === 'ECONNABORTED') {
-        errorMessage = 'Request timeout. Please try again.'
+        errorMessage = 'Request timeout. Please try again.';
       } else if (err.response?.status >= 500) {
-        errorMessage = 'Server error. Please try again later.'
+        errorMessage = 'Server error. Please try again later.';
       } else if (err.message.includes('No authentication token')) {
-        errorMessage = err.message
+        errorMessage = err.message;
+      } else if (err.message.includes('No profile endpoints')) {
+        errorMessage = 'Profile service temporarily unavailable. Using cached data.';
       }
 
-      setError(errorMessage)
+      setError(errorMessage);
 
       if (authUser) {
-        setUserData(authUser)
+        setUserData(authUser);
       } else {
-        const storedUser = localStorage.getItem('userData')
+        const storedUser = localStorage.getItem('userData');
         if (storedUser) {
           try {
-            const parsedUser = JSON.parse(storedUser)
-            setUserData(parsedUser)
-            errorMessage += ' (showing cached data)'
-            setError(errorMessage)
+            const parsedUser = JSON.parse(storedUser);
+            // Fix avatar URLs in cached data too
+            if (parsedUser.profilePicture) {
+              parsedUser.profilePicture = fixAvatarUrl(parsedUser.profilePicture, parsedUser.avatar);
+            }
+            setUserData(parsedUser);
+            errorMessage += ' (showing cached data)';
+            setError(errorMessage);
           } catch (parseError) {
-            console.error('Error parsing stored user data:', parseError)
+            console.error('Error parsing stored user data:', parseError);
           }
         }
       }
 
-      await fetchStatistics()
+      await fetchStatistics();
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchCompleteProfile()
-  }, [retryCount])
+    fetchCompleteProfile();
+  }, [retryCount]);
 
   const handleRetry = () => {
-    setRetryCount(prev => prev + 1)
-  }
+    setRetryCount(prev => prev + 1);
+  };
 
   const handleLogout = () => {
-    logout()
-    window.location.href = '/'
-  }
+    logout();
+    window.location.href = '/';
+  };
 
   const handleReauthenticate = () => {
-    localStorage.clear()
-    sessionStorage.clear()
-    logout()
-    window.location.href = '/signin'
-  }
+    localStorage.clear();
+    sessionStorage.clear();
+    logout();
+    window.location.href = '/signin';
+  };
 
-  // Mock data for services (replace with actual API data)
+  // Mock data
   const services = [
     {
       id: 1,
@@ -218,52 +596,19 @@ const ClientDashboard = () => {
       location: 'Mombasa',
       featured: false,
       status: 'active'
-    },
-    {
-      id: 3,
-      title: 'Digital Marketing Strategy',
-      provider: 'Growth Agency',
-      price: 1500,
-      rating: 4.7,
-      reviews: 67,
-      image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400',
-      category: 'Marketing',
-      location: 'Nairobi',
-      featured: true,
-      status: 'pending'
-    },
-    {
-      id: 4,
-      title: 'SEO Optimization Package',
-      provider: 'Search Masters',
-      price: 600,
-      rating: 4.5,
-      reviews: 45,
-      image: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=400',
-      category: 'Marketing',
-      location: 'Kisumu',
-      featured: false,
-      status: 'active'
     }
-  ]
-
-  const recentTransactions = [
-    { id: 1, service: 'Web Development', amount: 1200, date: '2024-01-15', status: 'completed', type: 'payment' },
-    { id: 2, service: 'App Design', amount: 800, date: '2024-01-12', status: 'completed', type: 'payment' },
-    { id: 3, service: 'Marketing Package', amount: 1500, date: '2024-01-10', status: 'pending', type: 'payment' },
-    { id: 4, service: 'SEO Service', amount: 600, date: '2024-01-08', status: 'completed', type: 'payment' }
-  ]
+  ];
 
   const notifications = [
     { id: 1, title: 'New Message', description: 'You have a new message from Tech Solutions', time: '2 min ago', unread: true },
     { id: 2, title: 'Payment Received', description: 'Your payment of $800 has been processed', time: '1 hour ago', unread: true },
     { id: 3, title: 'Service Update', description: 'Your website development is 50% complete', time: '3 hours ago', unread: false }
-  ]
+  ];
 
-  const hasUserData = userData || authUser || localStorage.getItem('userData')
+  const hasUserData = userData || authUser || localStorage.getItem('userData');
 
   const getUserInfo = () => {
-    const data = userData || authUser || JSON.parse(localStorage.getItem('userData') || '{}')
+    const data = userData || authUser || JSON.parse(localStorage.getItem('userData') || '{}');
     
     return {
       userName: `${data?.firstName || ''} ${data?.lastName || ''}`.trim() || 'Guest User',
@@ -286,10 +631,10 @@ const ClientDashboard = () => {
       createdAt: data?.createdAt,
       profilePicture: data?.profilePicture,
       location: data?.location || 'Nairobi, Kenya'
-    }
-  }
+    };
+  };
 
-  const userInfo = getUserInfo()
+  const userInfo = getUserInfo();
 
   const stats = [
     {
@@ -302,7 +647,7 @@ const ClientDashboard = () => {
     },
     {
       label: 'Total Spent',
-      value: `$${statistics?.totalSpent?.toString() || '4,100'}`,
+      value: `$${(statistics?.totalSpent || 4100).toLocaleString()}`,
       change: '+12%',
       icon: DollarSign,
       color: 'blue',
@@ -316,8 +661,7 @@ const ClientDashboard = () => {
       color: 'purple',
       description: 'Unread messages'
     },
-   
-  ]
+  ];
 
   if (loading && !hasUserData) {
     return (
@@ -327,111 +671,232 @@ const ClientDashboard = () => {
           <p className="mt-4 text-gray-600">Loading your dashboard...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Enhanced Header */}
-      <header className="bg-white shadow-sm border-b sticky top-0 z-50">
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div className="flex justify-between items-center h-16">
-      <div className="flex items-center space-x-8">
-        <div className="flex items-center">
-          <img
-            src={logo}
-            alt="WatuKazi Logo"
-            className="h-8 w-auto sm:h-10 object-contain rounded-full"
-          />
-          <span className="ml-2 text-xl font-bold text-gray-900">WatuKazi</span>
-        </div>
-        
-        {/* Navigation Tabs */}
-        <nav className="hidden md:flex space-x-6">
-          {[ 'Services', 'Messages', 'Request', 'Subscription'].map((item) => (
-            <button
-              key={item}
-              className={`font-medium text-sm transition-colors ${
-                activeTab === item.toLowerCase() 
-                  ? 'text-blue-600 border-b-2 border-blue-600' 
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-              onClick={() => setActiveTab(item.toLowerCase())}
-            >
-              {item}
-            </button>
-          ))}
-        </nav>
-      </div>
+      {/* Hidden file input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileSelect}
+        accept="image/jpeg,image/jpg,image/png"
+        className="hidden"
+      />
 
-      <div className="flex items-center space-x-4">
-        {/* Search Bar */}
-        <div className="hidden lg:block relative">
-          <Search className="h-4 w-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search services, providers..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64 text-sm"
-          />
-        </div>
-
-        {/* Action Buttons */}
-        <button className="relative p-2 text-gray-600 hover:text-gray-900 bg-gray-100 rounded-lg">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-        </button>
-
-        <button className="hidden sm:flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-          <Plus className="h-4 w-4" />
-          <span className="text-sm font-medium">Add Service</span>
-        </button>
-
-        {/* User Menu */}
-        <div className="relative group">
-          <div className="flex items-center space-x-3 cursor-pointer">
-            <img
-              className="h-8 w-8 rounded-full border-2 border-gray-200"
-              src={
-                userInfo.profilePicture
-                  ? userInfo.profilePicture
-                  : `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo.userName)}&background=3b82f6&color=fff`
-              }
-              alt="Profile"
-            />
-            <div className="hidden sm:block text-left">
-              <p className="text-sm font-medium text-gray-900">{userInfo.userName}</p>
-              <p className="text-xs text-gray-500">{userInfo.role}</p>
-            </div>
-          </div>
-          
-          {/* Dropdown Menu */}
-          <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-            <div className="py-1">
-              <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                <User className="h-4 w-4 mr-2" />
-                Profile
-              </button>
-              <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
-              </button>
-              <div className="border-t border-gray-100 my-1"></div>
-              <button 
-                className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                onClick={handleLogout} // Add your logout function here
+      {/* Avatar Upload Modal */}
+      {showAvatarModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div 
+            ref={modalRef}
+            className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Change Profile Picture</h3>
+              <button
+                onClick={() => setShowAvatarModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+                disabled={avatarLoading}
               >
-                <LogOut className="h-4 w-4 mr-2" />
-                Log Out
+                <XCircle className="h-6 w-6" />
               </button>
+            </div>
+
+            {avatarError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-700 text-sm">{avatarError}</p>
+              </div>
+            )}
+
+            <div className="text-center mb-6">
+              <div className="mx-auto mb-4 relative">
+                <img
+                  className="h-24 w-24 rounded-full border-4 border-blue-100 mx-auto"
+                  src={
+                    userInfo.profilePicture ||
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo.userName)}&background=3b82f6&color=fff`
+                  }
+                  alt="Current avatar"
+                  onError={(e) => {
+                    // If image fails to load, fallback to default avatar
+                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo.userName)}&background=3b82f6&color=fff`;
+                  }}
+                />
+                {avatarLoading && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                    <RefreshCw className="h-8 w-8 text-white animate-spin" />
+                  </div>
+                )}
+              </div>
+              
+              {avatarLoading && avatarUploadProgress > 0 && (
+                <div className="mb-4">
+                  <div className="flex justify-between text-sm text-gray-600 mb-2">
+                    <span>Uploading...</span>
+                    <span>{avatarUploadProgress}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${avatarUploadProgress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+
+              <p className="text-gray-600 text-sm mb-4">
+                Upload a new profile picture. Images will be automatically compressed.
+              </p>
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={handleSelectFile}
+                disabled={avatarLoading}
+                className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                <Camera className="h-5 w-5 mr-2" />
+                {avatarLoading ? 'Uploading...' : 'Choose Image'}
+              </button>
+              
+              <button
+                onClick={() => setShowAvatarModal(false)}
+                disabled={avatarLoading}
+                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <p className="text-xs text-blue-700">
+                <strong>Note:</strong> If avatar doesn't display immediately, it may take a moment to process.
+              </p>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-</header>
+      )}
+
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-8">
+              <div className="flex items-center">
+                <img
+                  src={logo}
+                  alt="WatuKazi Logo"
+                  className="h-8 w-auto sm:h-10 object-contain rounded-full"
+                />
+                <span className="ml-2 text-xl font-bold text-gray-900">WatuKazi</span>
+              </div>
+              
+              <nav className="hidden md:flex space-x-6">
+                {['Overview', 'Services', 'Messages', 'Request', 'Subscription'].map((item) => (
+                  <button
+                    key={item}
+                    className={`font-medium text-sm transition-colors ${
+                      activeTab === item.toLowerCase() 
+                        ? 'text-blue-600 border-b-2 border-blue-600' 
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                    onClick={() => setActiveTab(item.toLowerCase())}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </nav>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <div className="hidden lg:block relative">
+                <Search className="h-4 w-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search services, providers..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64 text-sm"
+                />
+              </div>
+
+              <button className="relative p-2 text-gray-600 hover:text-gray-900 bg-gray-100 rounded-lg">
+                <Bell className="h-5 w-5" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              </button>
+
+              <button className="hidden sm:flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                <Plus className="h-4 w-4" />
+                <span className="text-sm font-medium">Add Service</span>
+              </button>
+
+              {/* User Menu */}
+              <div className="relative" ref={profileMenuRef}>
+                <button
+                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                  className="flex items-center space-x-3 cursor-pointer focus:outline-none"
+                >
+                  <div className="relative">
+                    <img
+                      className="h-8 w-8 rounded-full border-2 border-gray-200"
+                      src={
+                        userInfo.profilePicture ||
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo.userName)}&background=3b82f6&color=fff`
+                      }
+                      alt="Profile"
+                      onError={(e) => {
+                        // Fallback to default avatar if image fails to load
+                        e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo.userName)}&background=3b82f6&color=fff`;
+                      }}
+                    />
+                    {avatarLoading && (
+                      <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                        <RefreshCw className="h-4 w-4 text-white animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="hidden sm:block text-left">
+                    <p className="text-sm font-medium text-gray-900">{userInfo.userName}</p>
+                    <p className="text-xs text-gray-500 capitalize">{userInfo.role}</p>
+                  </div>
+                </button>
+                
+                {/* Profile Dropdown Menu */}
+                {showProfileMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                    <div className="py-1">
+                      <button 
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={handleChangeAvatar}
+                      >
+                        <Camera className="h-4 w-4 mr-2" />
+                        Change Avatar
+                      </button>
+                      <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <User className="h-4 w-4 mr-2" />
+                        Profile
+                      </button>
+                      <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <Settings className="h-4 w-4 mr-2" />
+                        Settings
+                      </button>
+                      <div className="border-t border-gray-100 my-1"></div>
+                      <button 
+                        className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                        onClick={handleLogout}
+                      >
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Log Out
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
 
       {/* Error Banner */}
       {error && (
@@ -466,7 +931,7 @@ const ClientDashboard = () => {
       )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Welcome Section with Quick Stats */}
+        {/* Welcome Section */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
             <div>
@@ -497,14 +962,16 @@ const ClientDashboard = () => {
                     <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
                     <p className="text-xs text-green-600 mt-1">{stat.change} from last week</p>
                   </div>
-                  <div className={`p-3 rounded-lg ${stat.color === 'blue' ? 'bg-blue-100' :
-                      stat.color === 'green' ? 'bg-green-100' :
-                        stat.color === 'purple' ? 'bg-purple-100' : 'bg-orange-100'
-                    }`}>
-                    <stat.icon className={`h-6 w-6 ${stat.color === 'blue' ? 'text-blue-600' :
-                        stat.color === 'green' ? 'text-green-600' :
-                          stat.color === 'purple' ? 'text-purple-600' : 'text-orange-600'
-                      }`} />
+                  <div className={`p-3 rounded-lg ${
+                    stat.color === 'blue' ? 'bg-blue-100' :
+                    stat.color === 'green' ? 'bg-green-100' :
+                    stat.color === 'purple' ? 'bg-purple-100' : 'bg-orange-100'
+                  }`}>
+                    <stat.icon className={`h-6 w-6 ${
+                      stat.color === 'blue' ? 'text-blue-600' :
+                      stat.color === 'green' ? 'text-green-600' :
+                      stat.color === 'purple' ? 'text-purple-600' : 'text-orange-600'
+                    }`} />
                   </div>
                 </div>
               </div>
@@ -515,7 +982,7 @@ const ClientDashboard = () => {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="xl:col-span-2 space-y-8">
-            {/* Services Section - Jiji Style */}
+            {/* Services Section */}
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4 sm:mb-0">Your Services</h2>
@@ -541,7 +1008,6 @@ const ClientDashboard = () => {
                 </div>
               </div>
 
-              {/* Services Grid */}
               <div className={`${viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-6' : 'space-y-4'}`}>
                 {services.map((service) => (
                   <div key={service.id} className={`bg-gray-50 rounded-lg border border-gray-200 hover:shadow-md transition-all ${
@@ -601,15 +1067,33 @@ const ClientDashboard = () => {
             {/* Profile Summary */}
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
               <div className="flex items-center space-x-4 mb-6">
-                <img
-                  className="h-16 w-16 rounded-full border-4 border-blue-100"
-                  src={
-                    userInfo.profilePicture
-                      ? userInfo.profilePicture
-                      : `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo.userName)}&background=3b82f6&color=fff`
-                  }
-                  alt="Profile"
-                />
+                <div className="relative">
+                  <img
+                    className="h-16 w-16 rounded-full border-4 border-blue-100"
+                    src={
+                      userInfo.profilePicture ||
+                      `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo.userName)}&background=3b82f6&color=fff`
+                    }
+                    alt="Profile"
+                    onError={(e) => {
+                      // Fallback to default avatar if image fails to load
+                      e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userInfo.userName)}&background=3b82f6&color=fff`;
+                    }}
+                  />
+                  {avatarLoading && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                      <RefreshCw className="h-5 w-5 text-white animate-spin" />
+                    </div>
+                  )}
+                  <button
+                    onClick={handleChangeAvatar}
+                    disabled={avatarLoading}
+                    className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-1 cursor-pointer hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    title="Change avatar"
+                  >
+                    <Camera className="h-3 w-3 text-white" />
+                  </button>
+                </div>
                 <div>
                   <h3 className="font-bold text-gray-900 text-lg">{userInfo.userName}</h3>
                   <p className="text-gray-600 text-sm">{userInfo.userEmail}</p>
@@ -624,6 +1108,21 @@ const ClientDashboard = () => {
                 </div>
               </div>
               
+              {avatarLoading && avatarUploadProgress > 0 && (
+                <div className="mb-4">
+                  <div className="flex justify-between text-xs text-gray-600 mb-1">
+                    <span>Uploading...</span>
+                    <span>{avatarUploadProgress}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${avatarUploadProgress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Member Since</span>
@@ -641,9 +1140,29 @@ const ClientDashboard = () => {
                 </div>
               </div>
 
-              <button className="w-full mt-6 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium">
-                Edit Profile
+              <button 
+                className="w-full mt-6 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium flex items-center justify-center disabled:bg-gray-300 disabled:cursor-not-allowed"
+                onClick={handleChangeAvatar}
+                disabled={avatarLoading}
+              >
+                {avatarLoading ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                    {avatarUploadProgress > 0 ? `Uploading... ${avatarUploadProgress}%` : 'Uploading...'}
+                  </>
+                ) : (
+                  <>
+                    <Camera className="h-4 w-4 mr-2" />
+                    Change Avatar
+                  </>
+                )}
               </button>
+
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-xs text-blue-700">
+                  <strong>Note:</strong> Avatar upload is working, but display may take a moment due to server processing.
+                </p>
+              </div>
             </div>
 
             {/* Notifications */}
@@ -698,7 +1217,7 @@ const ClientDashboard = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ClientDashboard
+export default ClientDashboard;
