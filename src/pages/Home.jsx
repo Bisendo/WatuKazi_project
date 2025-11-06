@@ -1,6 +1,6 @@
 import React from "react";
 import Hero from "../components/Hero";
-import JobList from "../components/Joblist";
+import JobList from "../components/HomeServiceList";
 import Footer from "../components/Footer";
 
 const Home = () => {

@@ -13,12 +13,15 @@ import {
   FaGlobe,
   FaExclamationCircle,
   FaSpinner,
+  FaUser,
+  FaUserTie,
+  FaUserShield,
 } from "react-icons/fa";
 import { useLanguage } from "../components/LanguageContext";
 import { useAuth } from "../contexts/authContext";
 
 const LoginForm = () => {
-  const { login } = useAuth();
+  const { login, isAuthenticated, user, accessToken } = useAuth();
   
   const [formData, setFormData] = useState({
     identifier: "",
@@ -60,6 +63,8 @@ const LoginForm = () => {
       somethingWentWrong: "Kuna hitilafu imetokea, tafadhali jaribu tena",
       loginSuccess: "Umefanikiwa kuingia!",
       redirecting: "Inaelekeza...",
+      userRole: "Jukumu",
+      userName: "Jina",
     },
     en: {
       welcome: "Welcome Back",
@@ -84,10 +89,27 @@ const LoginForm = () => {
       somethingWentWrong: "Something went wrong, please try again",
       loginSuccess: "Login successful!",
       redirecting: "Redirecting...",
+      userRole: "Role",
+      userName: "Name",
     },
   };
 
   const t = content[language];
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    console.log("🔐 LoginForm - Auth status check:", { 
+      isAuthenticated, 
+      user, 
+      accessToken: !!accessToken 
+    });
+    
+    if (isAuthenticated && user && accessToken) {
+      console.log("✅ User already authenticated, redirecting...");
+      const from = location.state?.from?.pathname || determineDashboardRoute(user);
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, user, accessToken, navigate, location]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -129,11 +151,11 @@ const LoginForm = () => {
       return "/client/dashboard";
     }
 
-    // Check user role/type from the API response
+    // Check user role/type from the user data
     const userType = userData?.role || userData?.userType || userData?.type;
     
-    console.log("👤 User data:", userData);
-    console.log("🎭 User type:", userType);
+    console.log("👤 User data for routing:", userData);
+    console.log("🎭 User type detected:", userType);
 
     // Map user types to dashboard routes
     if (userType) {
@@ -148,18 +170,40 @@ const LoginForm = () => {
       }
     }
 
-    // Fallback: Check for specific fields that might indicate user type
-    if (userData?.isServiceProvider || userData?.isProvider || userData?.serviceProvider) {
-      return "/provider/dashboard";
-    }
-    
-    if (userData?.isClient || userData?.hasProjects || userData?.client) {
-      return "/client/dashboard";
-    }
-
     // Default fallback
     console.log("🔍 No specific user type detected, defaulting to client dashboard");
     return "/client/dashboard";
+  };
+
+  const getUserRoleIcon = (userData) => {
+    const userType = userData?.role || userData?.userType || userData?.type || "";
+    const type = userType.toLowerCase();
+    
+    if (type.includes("admin")) return <FaUserShield className="text-red-500" />;
+    if (type.includes("provider")) return <FaUserTie className="text-green-500" />;
+    return <FaUser className="text-blue-500" />;
+  };
+
+  const getUserRoleText = (userData) => {
+    const userType = userData?.role || userData?.userType || userData?.type || "";
+    const type = userType.toLowerCase();
+    
+    if (type.includes("admin")) return language === "sw" ? "Msimamizi" : "Administrator";
+    if (type.includes("provider")) return language === "sw" ? "Mtoa Huduma" : "Service Provider";
+    return language === "sw" ? "Mteja" : "Client";
+  };
+
+  const getUserDisplayName = (userData) => {
+    if (!userData) return "";
+    
+    // Try different possible user data structures
+    return userData.firstName || 
+           userData.username || 
+           userData.fullName || 
+           userData.name || 
+           userData.businessName || 
+           userData.email?.split('@')[0] || 
+           (language === "sw" ? "Mtumiaji" : "User");
   };
 
   const handleSubmit = async (e) => {
@@ -204,32 +248,36 @@ const LoginForm = () => {
       console.log("✅ Login API Response:", response);
       console.log("✅ Response data:", response.data);
 
-      // Handle remember me
+      // Handle remember me for phone number
       if (formData.rememberMe) {
         localStorage.setItem("rememberedPhone", formData.identifier);
       } else {
         localStorage.removeItem("rememberedPhone");
       }
 
-      // Extract user data and token from response
-      const userData = response.data.user || response.data.data || response.data;
-      const accessToken = response.data.accessToken || response.data.token;
+      // Extract data from API response
+      const responseData = response.data;
+      const accessToken = responseData.accessToken;
+      const refreshToken = responseData.refreshToken;
 
       if (!accessToken) {
         throw new Error("No access token received from server");
       }
 
-      if (!userData) {
-        throw new Error("No user data received from server");
-      }
+      console.log("🔐 Extracted tokens:", { 
+        accessToken: !!accessToken, 
+        refreshToken: !!refreshToken 
+      });
 
-      // Use the auth context login function
-      login(userData, accessToken, formData.rememberMe);
+      // Use the auth context login function with tokens
+      const userData = await login(accessToken, refreshToken, formData.rememberMe);
 
-      // Show success message
-      setError(""); // Clear any previous errors
+      console.log("👤 User data after login:", userData);
+
+      // Show success message with user info
+      setError("success");
       
-      // Determine dashboard route
+      // Determine dashboard route using the user data
       const dashboardRoute = determineDashboardRoute(userData);
       
       console.log("🎯 Redirecting to:", dashboardRoute);
@@ -239,7 +287,6 @@ const LoginForm = () => {
         navigate(dashboardRoute, {
           replace: true,
           state: {
-            user: userData,
             message: t.loginSuccess,
             from: "login",
           },
@@ -305,13 +352,51 @@ const LoginForm = () => {
         authToken: sessionStorage.getItem("authToken") ? "Present" : "Missing",
         userData: sessionStorage.getItem("userData") ? "Present" : "Missing",
       },
+      authContext: {
+        isAuthenticated,
+        user: user ? "Present" : "Missing",
+        accessToken: accessToken ? "Present" : "Missing"
+      }
     });
-  }, []);
+  }, [isAuthenticated, user, accessToken]);
 
   if (!isMounted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
         <FaSpinner className="animate-spin text-blue-600 text-3xl" />
+      </div>
+    );
+  }
+
+  // Show loading while checking authentication
+  if (isAuthenticated && accessToken) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+        <div className="text-center">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4"
+          >
+            <FaSignInAlt className="text-white text-2xl" />
+          </motion.div>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-gray-600 dark:text-gray-400 text-lg mb-2"
+          >
+            {t.loginSuccess}
+          </motion.p>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-gray-500 dark:text-gray-500 text-sm"
+          >
+            <FaSpinner className="animate-spin inline mr-2" />
+            {t.redirecting}
+          </motion.p>
+        </div>
       </div>
     );
   }
@@ -374,7 +459,7 @@ const LoginForm = () => {
             </motion.p>
           </div>
 
-          {error && (
+          {error && error !== "success" && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -382,6 +467,39 @@ const LoginForm = () => {
             >
               <FaExclamationCircle className="text-red-500 flex-shrink-0" />
               <p className="text-xs text-red-600 dark:text-red-300">{error}</p>
+            </motion.div>
+          )}
+
+          {error === "success" && user && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <FaSignInAlt className="text-green-500 flex-shrink-0" />
+                <p className="text-sm font-medium text-green-600 dark:text-green-300">{t.loginSuccess}</p>
+              </div>
+              <div className="space-y-2 text-xs text-green-700 dark:text-green-400">
+                <div className="flex items-center gap-2">
+                  <FaUser className="text-green-500" />
+                  <span><strong>{t.userName}:</strong> {getUserDisplayName(user)}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {getUserRoleIcon(user)}
+                  <span><strong>{t.userRole}:</strong> {getUserRoleText(user)}</span>
+                </div>
+                {user.email && (
+                  <div className="text-xs text-green-600 dark:text-green-400">
+                    <strong>Email:</strong> {user.email}
+                  </div>
+                )}
+                {user.phone && (
+                  <div className="text-xs text-green-600 dark:text-green-400">
+                    <strong>Phone:</strong> {user.phone}
+                  </div>
+                )}
+              </div>
             </motion.div>
           )}
 

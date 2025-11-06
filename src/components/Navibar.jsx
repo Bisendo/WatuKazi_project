@@ -1,8 +1,11 @@
+// src/components/Navbar.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import logo from "../assets/watukazi.jpeg";
-import { useLanguage } from "../components/LanguageContext"; // Import the language context
+import { useLanguage } from "../components/LanguageContext";
+import { useAuth } from "../contexts/authContext";
+import Avatar from "./Avatar";
 
 import { 
   FaBell, 
@@ -27,11 +30,11 @@ const Navbar = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [activePath, setActivePath] = useState("/");
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
-  // Use language context
   const { language, toggleLanguage } = useLanguage();
+  const { isAuthenticated, user, logout, loading } = useAuth();
 
   const notificationsRef = useRef(null);
   const profileRef = useRef(null);
@@ -40,48 +43,40 @@ const Navbar = () => {
   // Language content for Navbar
   const navbarContent = {
     sw: {
-      // Menu items
       home: "Nyumbani",
       service: "Huduma",
       about: "Kuhusu",
       contact: "Wasiliana",
-      // Auth
       signIn: "Ingia",
       signUp: "Jisajili",
       signOut: "Toka",
-      // Profile
       myProfile: "Profaili Yangu",
       settings: "Mipangilio",
       helpSupport: "Usaidizi",
       premiumMember: "Mwanachama Bora",
-      // Notifications
       notifications: "Arifa",
       viewAll: "Angalia Zote",
       new: "mpya",
-      // Mobile menu
-      findJob: "Tafuta Kazi"
+      findJob: "Tafuta Kazi",
+      dashboard: "Dashibodi"
     },
     en: {
-      // Menu items
       home: "Home",
       service: "Service",
       about: "About",
       contact: "Contact",
-      // Auth
       signIn: "Sign In",
       signUp: "Sign Up",
       signOut: "Sign Out",
-      // Profile
       myProfile: "My Profile",
       settings: "Settings",
       helpSupport: "Help & Support",
       premiumMember: "Premium Member",
-      // Notifications
       notifications: "Notifications",
       viewAll: "View All",
       new: "new",
-      // Mobile menu
-      findJob: "Find Your Dream Job"
+      findJob: "Find Your Dream Job",
+      dashboard: "Dashboard"
     }
   };
 
@@ -89,7 +84,7 @@ const Navbar = () => {
 
   const menuItems = [
     { name: t.home, path: "/", icon: FaHome },
-    { name: t.service, path: "/service", icon: FaBriefcase },
+    { name: t.service, path: "/services", icon: FaBriefcase },
     { name: t.about, path: "/about", icon: FaInfoCircle },
     { name: t.contact, path: "/contact", icon: FaEnvelope }
   ];
@@ -108,34 +103,68 @@ const Navbar = () => {
       time: language === 'sw' ? "Saa 1 iliyopita" : "1 hour ago", 
       unread: true, 
       type: "application" 
-    },
-    { 
-      id: 3, 
-      text: language === 'sw' ? "Taarifa za kazi za wiki tayari" : "Weekly job digest ready", 
-      time: language === 'sw' ? "Saa 2 zilizopita" : "2 hours ago", 
-      unread: false, 
-      type: "digest" 
-    },
-    { 
-      id: 4, 
-      text: language === 'sw' ? "Ukumbusho wa kukamilisha wasifu" : "Profile completion reminder", 
-      time: language === 'sw' ? "Siku 1 iliyopita" : "1 day ago", 
-      unread: false, 
-      type: "reminder" 
-    },
+    }
   ];
 
   const unreadCount = notifications.filter(notification => notification.unread).length;
 
+  // Set active path when location changes
   useEffect(() => {
     setActivePath(location.pathname);
   }, [location]);
 
+  // Handle scroll effect
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
     };
 
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+
+  // Add this useEffect in your Navbar component, after the existing useEffects
+useEffect(() => {
+  // Sync with localStorage on component mount
+  const syncAuthData = () => {
+    if (!isAuthenticated && !loading) {
+      // Check if we have auth data in storage but context doesn't know about it
+      const storedUser = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      
+      if (storedUser && token) {
+        // We have stored auth data, but context isn't authenticated
+        // This can happen after refresh - we should update the context
+        try {
+          const userData = JSON.parse(storedUser);
+          // You might want to trigger a context update here
+          // Or simply rely on the context's own initialization
+          console.log('Found stored user data:', userData);
+        } catch (error) {
+          console.error('Error parsing stored user data:', error);
+        }
+      }
+    }
+  };
+
+  syncAuthData();
+}, [isAuthenticated, loading]);
+
+// Also, improve the loading state check
+if (loading) {
+  return (
+    <>
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg shadow-lg border-b border-gray-200/80">
+        {/* Your existing loading skeleton */}
+      </nav>
+      <div className="h-14 sm:h-16 lg:h-20"></div>
+    </>
+  );
+}
+
+  // Handle click outside dropdowns
+  useEffect(() => {
     const handleClickOutside = (event) => {
       if (notificationsRef.current && !notificationsRef.current.contains(event.target)) {
         setIsNotificationsOpen(false);
@@ -148,27 +177,94 @@ const Navbar = () => {
       }
     };
 
-    const handleResize = () => {
-      if (window.innerWidth >= 1024) {
-        setIsMobileMenuOpen(false);
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    window.addEventListener("resize", handleResize);
     document.addEventListener("mousedown", handleClickOutside);
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleResize);
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isMobileMenuOpen]);
 
   // Close mobile menu when route changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location]);
+
+  const handleLogout = () => {
+    logout();
+    setIsProfileOpen(false);
+    setIsMobileMenuOpen(false);
+    navigate("/");
+  };
+
+  const getUserDisplayName = () => {
+    if (!user) return "User";
+    return user.firstName || user.businessName || user.name || user.email?.split('@')[0] || "User";
+  };
+
+  const getUserDashboardRoute = () => {
+    if (!user) return "/client/dashboard";
+    
+    const userType = user?.role || user?.userType || user?.type;
+    
+    if (userType) {
+      const type = userType.toLowerCase();
+      if (type.includes("client") || type.includes("customer") || type.includes("user")) {
+        return "/client/dashboard";
+      } else if (type.includes("provider") || type.includes("service") || type.includes("vendor")) {
+        return "/provider/dashboard";
+      } else if (type.includes("admin") || type.includes("administrator")) {
+        return "/admin-dashboard";
+      }
+    }
+
+    return "/client/dashboard";
+  };
+
+  // Show loading state while authentication is being checked
+  if (loading) {
+    return (
+      <>
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg shadow-lg border-b border-gray-200/80">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8">
+            <div className="flex justify-between items-center h-14 sm:h-16 lg:h-20">
+              
+              {/* Logo Section - Loading */}
+              <div className="flex items-center flex-shrink-0">
+                <div className="flex items-center space-x-2 sm:space-x-3">
+                  <div className="h-6 w-6 xs:h-7 xs:w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 lg:h-10 lg:w-10 xl:h-11 xl:w-11 bg-gray-300 rounded-full animate-pulse"></div>
+                  <div className="flex flex-col space-y-1">
+                    <div className="h-6 w-32 bg-gray-300 rounded animate-pulse"></div>
+                    <div className="h-3 w-24 bg-gray-300 rounded animate-pulse hidden xs:block"></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Desktop Navigation - Loading */}
+              <div className="hidden lg:flex items-center space-x-1 xl:space-x-2 mx-4 xl:mx-8">
+                {[1, 2, 3, 4].map((item) => (
+                  <div key={item} className="h-10 w-20 bg-gray-300 rounded-lg animate-pulse"></div>
+                ))}
+              </div>
+
+              {/* Right Section - Loading */}
+              <div className="hidden lg:flex items-center space-x-2 xl:space-x-3">
+                <div className="h-10 w-10 bg-gray-300 rounded-lg animate-pulse"></div>
+                <div className="h-10 w-20 bg-gray-300 rounded-lg animate-pulse"></div>
+                <div className="h-10 w-20 bg-gray-300 rounded-lg animate-pulse"></div>
+              </div>
+
+              {/* Mobile Menu - Loading */}
+              <div className="flex lg:hidden items-center space-x-1 sm:space-x-2">
+                <div className="h-8 w-8 bg-gray-300 rounded-lg animate-pulse"></div>
+                <div className="h-8 w-8 bg-gray-300 rounded-lg animate-pulse"></div>
+                <div className="h-8 w-8 bg-gray-300 rounded-lg animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        </nav>
+        
+        {/* Spacer to prevent content from being hidden behind fixed navbar */}
+        <div className="h-14 sm:h-16 lg:h-20"></div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -210,7 +306,7 @@ const Navbar = () => {
               </Link>
             </div>
 
-            {/* Desktop Navigation - Show on lg screens and up */}
+            {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center space-x-1 xl:space-x-2 mx-4 xl:mx-8">
               {menuItems.map((item) => {
                 const IconComponent = item.icon;
@@ -249,7 +345,7 @@ const Navbar = () => {
               </motion.button>
 
               {/* Auth Buttons - Show when not logged in */}
-              {!isLoggedIn ? (
+              {!isAuthenticated ? (
                 <>
                   <Link to="/signin">
                     <motion.button
@@ -274,6 +370,18 @@ const Navbar = () => {
                 </>
               ) : (
                 <>
+                  {/* Dashboard Link */}
+                  <Link to={getUserDashboardRoute()}>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="flex items-center space-x-2 px-4 xl:px-6 py-2 xl:py-3 text-green-600 hover:text-green-700 font-medium rounded-lg xl:rounded-xl hover:bg-green-50 transition-all duration-200 border border-transparent hover:border-green-200"
+                    >
+                      <FaBuilding className="w-4 h-4" />
+                      <span>{t.dashboard}</span>
+                    </motion.button>
+                  </Link>
+
                   {/* Notification Bell */}
                   <div className="relative" ref={notificationsRef}>
                     <motion.button
@@ -364,17 +472,14 @@ const Navbar = () => {
                       whileTap={{ scale: 0.98 }}
                       className="flex items-center space-x-2 xl:space-x-3 p-1 xl:p-2 rounded-lg xl:rounded-xl hover:bg-gray-50 transition-all duration-200 border border-transparent hover:border-gray-200"
                     >
-                      <div className="relative">
-                        <img
-                          src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80"
-                          alt="Profile"
-                          className="w-8 h-8 xl:w-10 xl:h-10 rounded-lg xl:rounded-xl border-2 border-gray-200 shadow-sm"
-                        />
-                        <div className="absolute -bottom-1 -right-1 w-3 h-3 xl:w-4 xl:h-4 bg-green-500 rounded-full border-2 border-white"></div>
-                      </div>
-                      <div className="hidden xl:block text-left">
-                        <p className="text-sm font-semibold text-gray-900">John Doe</p>
-                        <p className="text-xs text-gray-500">{t.premiumMember}</p>
+                      <div className="flex items-center space-x-2">
+                        <Avatar user={user} size="sm" />
+                        <div className="hidden xl:block text-left">
+                          <p className="text-sm font-semibold text-gray-900 truncate max-w-[120px]">
+                            {getUserDisplayName()}
+                          </p>
+                          <p className="text-xs text-gray-500">{t.premiumMember}</p>
+                        </div>
                       </div>
                       <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
                     </motion.button>
@@ -389,14 +494,14 @@ const Navbar = () => {
                         >
                           <div className="p-3 xl:p-4 border-b border-gray-100">
                             <div className="flex items-center space-x-3">
-                              <img
-                                src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80"
-                                alt="Profile"
-                                className="w-10 h-10 xl:w-12 xl:h-12 rounded-lg xl:rounded-xl border-2 border-gray-200"
-                              />
+                              <Avatar user={user} size="md" />
                               <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-gray-900 text-sm xl:text-base">John Doe</p>
-                                <p className="text-xs xl:text-sm text-gray-500 truncate">john.doe@example.com</p>
+                                <p className="font-semibold text-gray-900 text-sm xl:text-base truncate">
+                                  {getUserDisplayName()}
+                                </p>
+                                <p className="text-xs xl:text-sm text-gray-500 truncate">
+                                  {user?.email || "Premium Member"}
+                                </p>
                               </div>
                             </div>
                           </div>
@@ -409,6 +514,14 @@ const Navbar = () => {
                             >
                               <FaUser className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />
                               <span>{t.myProfile}</span>
+                            </Link>
+                            <Link
+                              to={getUserDashboardRoute()}
+                              className="flex items-center space-x-3 px-3 xl:px-4 py-2 xl:py-3 text-gray-700 hover:bg-gray-50 transition-colors duration-200 group text-sm xl:text-base"
+                              onClick={() => setIsProfileOpen(false)}
+                            >
+                              <FaBuilding className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />
+                              <span>{t.dashboard}</span>
                             </Link>
                             <Link
                               to="/settings"
@@ -431,7 +544,7 @@ const Navbar = () => {
                           <div className="border-t border-gray-100 p-2">
                             <button 
                               className="flex items-center space-x-3 w-full text-left px-3 xl:px-4 py-2 xl:py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 group text-sm xl:text-base"
-                              onClick={() => setIsLoggedIn(false)}
+                              onClick={handleLogout}
                             >
                               <FaSignOutAlt className="w-4 h-4 group-hover:scale-110 transition-transform" />
                               <span className="font-medium">{t.signOut}</span>
@@ -462,7 +575,7 @@ const Navbar = () => {
               </motion.button>
 
               {/* Auth Buttons - Mobile (when not logged in) */}
-              {!isLoggedIn && (
+              {!isAuthenticated && (
                 <div className="flex items-center space-x-1 sm:space-x-2">
                   <Link to="/signin">
                     <motion.button
@@ -475,8 +588,20 @@ const Navbar = () => {
                 </div>
               )}
 
+              {/* Dashboard Button - Mobile (when logged in) */}
+              {isAuthenticated && (
+                <Link to={getUserDashboardRoute()}>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    className="p-2 sm:p-3 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg sm:rounded-xl transition-colors duration-200"
+                  >
+                    <FaBuilding className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </motion.button>
+                </Link>
+              )}
+
               {/* Notification Bell - Mobile (when logged in) */}
-              {isLoggedIn && (
+              {isAuthenticated && (
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   className="p-2 sm:p-3 text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded-lg sm:rounded-xl transition-colors duration-200 relative"
@@ -487,6 +612,17 @@ const Navbar = () => {
                       {unreadCount}
                     </span>
                   )}
+                </motion.button>
+              )}
+
+              {/* Profile Icon - Mobile (when logged in) */}
+              {isAuthenticated && (
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="p-1 sm:p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-50 rounded-lg sm:rounded-xl transition-colors duration-200"
+                >
+                  <Avatar user={user} size="sm" />
                 </motion.button>
               )}
 
@@ -550,15 +686,13 @@ const Navbar = () => {
                 </div>
 
                 {/* User Info - Show when logged in */}
-                {isLoggedIn && (
+                {isAuthenticated && (
                   <div className="flex items-center space-x-3 p-3 sm:p-4 bg-gray-50 rounded-xl mb-4 sm:mb-6">
-                    <img
-                      src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80"
-                      alt="Profile"
-                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl border-2 border-gray-300"
-                    />
+                    <Avatar user={user} size="md" />
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-900 text-sm sm:text-base truncate">John Doe</p>
+                      <p className="font-semibold text-gray-900 text-sm sm:text-base truncate">
+                        {getUserDisplayName()}
+                      </p>
                       <p className="text-xs sm:text-sm text-gray-500 truncate">{t.premiumMember}</p>
                     </div>
                   </div>
@@ -585,6 +719,18 @@ const Navbar = () => {
                     </Link>
                   );
                 })}
+
+                {/* Dashboard Link - Mobile (when logged in) */}
+                {isAuthenticated && (
+                  <Link
+                    to={getUserDashboardRoute()}
+                    className="flex items-center space-x-3 px-3 sm:px-4 py-3 sm:py-4 rounded-lg sm:rounded-xl font-medium transition-all duration-200 text-sm sm:text-base text-green-600 bg-green-50 border border-green-100"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <FaBuilding className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span>{t.dashboard}</span>
+                  </Link>
+                )}
               </div>
 
               {/* Mobile Actions */}
@@ -601,7 +747,7 @@ const Navbar = () => {
                 </button>
 
                 {/* Auth Buttons - Show when not logged in */}
-                {!isLoggedIn ? (
+                {!isAuthenticated ? (
                   <div className="space-y-3">
                     <Link to="/signin" onClick={() => setIsMobileMenuOpen(false)}>
                       <button className="flex items-center space-x-3 w-full text-left p-3 sm:p-4 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg sm:rounded-xl transition-colors duration-200 text-sm sm:text-base font-medium">
@@ -622,12 +768,17 @@ const Navbar = () => {
                       <FaBell className="w-4 h-4 sm:w-5 sm:h-5" />
                       <span className="font-medium">{t.notifications} ({unreadCount})</span>
                     </button>
+                    <Link 
+                      to="/profile"
+                      className="flex items-center space-x-3 w-full text-left p-3 sm:p-4 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-lg sm:rounded-xl transition-colors duration-200 text-sm sm:text-base"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <FaUser className="w-4 h-4 sm:w-5 sm:h-5" />
+                      <span>{t.myProfile}</span>
+                    </Link>
                     <button 
                       className="flex items-center space-x-3 w-full text-left p-3 sm:p-4 text-red-600 hover:bg-red-50 rounded-lg sm:rounded-xl transition-colors duration-200 text-sm sm:text-base font-medium"
-                      onClick={() => {
-                        setIsLoggedIn(false);
-                        setIsMobileMenuOpen(false);
-                      }}
+                      onClick={handleLogout}
                     >
                       <FaSignOutAlt className="w-4 h-4 sm:w-5 sm:h-5" />
                       <span>{t.signOut}</span>

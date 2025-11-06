@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import JobCard from "./JobCard";
 
-const JobList = () => {
+const HomeserviceList = () => {
   const [showAllJobs, setShowAllJobs] = useState(false);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -181,4 +181,4 @@ const JobList = () => {
   );
 };
 
-export default JobList;
+export default HomeserviceList;

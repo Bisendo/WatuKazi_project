@@ -316,125 +316,130 @@ const ServiceList = () => {
     }
   };
 
-  const ServiceCard = ({ service }) => (
-    <motion.div
-      variants={itemVariants}
-      className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 overflow-hidden group"
-    >
-      <Link to={`/service/${service.id}`} className="block">
-        <div className="relative">
-          <img 
-            src={getServiceImage(service.images)} 
-            alt={service.title}
-            className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-            onError={(e) => {
-              e.target.src = "https://images.unsplash.com/photo-1558655146-364adaf1fcc9?w=500&h=350&fit=crop";
-            }}
-          />
-          
-          {/* Badges */}
-          <div className="absolute top-3 left-3 flex flex-wrap gap-1">
-            {service.type === 'provider_service' && (
-              <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
-                Provider Service
-              </span>
-            )}
-            {service.type === 'client_request' && (
-              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
-                Client Request
-              </span>
-            )}
-            {service.featured && (
-              <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">
-                🔥 Featured
-              </span>
-            )}
-            {service.negotiable && (
-              <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-semibold">
-                💎 {t.negotiable}
-              </span>
-            )}
-          </div>
+const ServiceCard = ({ service }) => (
+  <motion.div
+    variants={itemVariants}
+    className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 overflow-hidden group"
+  >
+    <div className="relative">
+      <img 
+        src={getServiceImage(service.images)} 
+        alt={service.title}
+        className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+        onError={(e) => {
+          e.target.src = "https://images.unsplash.com/photo-1558655146-364adaf1fcc9?w=500&h=350&fit=crop";
+        }}
+      />
+      
+      {/* Badges */}
+      <div className="absolute top-3 left-3 flex flex-wrap gap-1">
+        {service.type === 'provider_service' && (
+          <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
+            Provider Service
+          </span>
+        )}
+        {service.type === 'client_request' && (
+          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
+            Client Request
+          </span>
+        )}
+        {service.featured && (
+          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">
+            🔥 Featured
+          </span>
+        )}
+        {service.negotiable && (
+          <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-semibold">
+            💎 {t.negotiable}
+          </span>
+        )}
+      </div>
 
-          {/* Favorite Button */}
-          <button
-            onClick={(e) => toggleFavorite(service.id, e)}
-            className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
-          >
-            <Heart 
-              className={`w-4 h-4 transition-all ${
-                favorites.has(service.id) 
-                  ? 'fill-red-500 text-red-500' 
-                  : 'text-gray-600 hover:text-red-500'
-              }`}
-            />
-          </button>
+      {/* Favorite Button */}
+      <button
+        onClick={(e) => toggleFavorite(service.id, e)}
+        className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
+      >
+        <Heart 
+          className={`w-4 h-4 transition-all ${
+            favorites.has(service.id) 
+              ? 'fill-red-500 text-red-500' 
+              : 'text-gray-600 hover:text-red-500'
+          }`}
+        />
+      </button>
 
-          {/* Price */}
-          <div className="absolute bottom-3 left-3 bg-black/80 text-white px-3 py-2 rounded-2xl backdrop-blur-sm">
-            <div className="flex items-center gap-1">
-              <span className="font-bold text-lg">
-                {formatPrice(service.price, service.currency)}
-              </span>
-              {service.originalPrice > service.price }
-            </div>
-            <div className="text-xs">
-              {service.negotiable ? t.negotiable : t.fixedPrice}
-            </div>
+      {/* Price */}
+      <div className="absolute bottom-3 left-3 bg-black/80 text-white px-3 py-2 rounded-2xl backdrop-blur-sm">
+        <div className="flex items-center gap-1">
+          <span className="font-bold text-lg">
+            {formatPrice(service.price, service.currency)}
+          </span>
+          {service.originalPrice > service.price && (
+            <span className="text-sm line-through text-gray-300">
+              {formatPrice(service.originalPrice, service.currency)}
+            </span>
+          )}
+        </div>
+        <div className="text-xs">
+          {service.negotiable ? t.negotiable : t.fixedPrice}
+        </div>
+      </div>
+    </div>
+
+    <div className="p-4">
+      <h3 className="font-semibold text-gray-800 mb-2 line-clamp-2 h-12">
+        {service.title}
+      </h3>
+      
+      <p className="text-gray-600 text-sm mb-3 line-clamp-2 h-10">
+        {service.description}
+      </p>
+
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-1">
+          <Eye className="w-4 h-4 text-gray-400" />
+          <span className="text-sm text-gray-600">
+            {service.views} {t.views}
+          </span>
+        </div>
+        
+        <div className="flex items-center gap-1">
+          <Clock className="w-4 h-4 text-gray-400" />
+          <span className="text-sm text-gray-600">{service.deliveryTime} {t.days}</span>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+            <span className="text-sm font-semibold text-gray-800">{service.rating}</span>
           </div>
+          <span className="text-sm text-gray-500">({service.reviews})</span>
         </div>
 
-        <div className="p-4">
-          <h3 className="font-semibold text-gray-800 mb-2 line-clamp-2 h-12">
-            {service.title}
-          </h3>
-          
-          <p className="text-gray-600 text-sm mb-3 line-clamp-2 h-10">
-            {service.description}
-          </p>
-
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-1">
-              <Eye className="w-4 h-4 text-gray-400" />
-              <span className="text-sm text-gray-600">
-                {service.views} {t.views}
-              </span>
-            </div>
-            
-            <div className="flex items-center gap-1">
-              <Clock className="w-4 h-4 text-gray-400" />
-              <span className="text-sm text-gray-600">{service.deliveryTime} {t.days}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">
-                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                <span className="text-sm font-semibold text-gray-800">{service.rating}</span>
-              </div>
-              <span className="text-sm text-gray-500">({service.reviews})</span>
-            </div>
-
-            <div className="flex items-center gap-1">
-              {service.seller.verified && (
-                <Verified className="w-4 h-4 text-blue-500" />
-              )}
-              <span className="text-sm text-gray-600 truncate max-w-[100px]">
-                {service.seller.name}
-              </span>
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-xl font-semibold text-sm transition-colors duration-200">
-              {t.viewDetails}
-            </button>
-          </div>
+        <div className="flex items-center gap-1">
+          {service.seller.verified && (
+            <Verified className="w-4 h-4 text-blue-500" />
+          )}
+          <span className="text-sm text-gray-600 truncate max-w-[100px]">
+            {service.seller.name}
+          </span>
         </div>
-      </Link>
-    </motion.div>
-  );
+      </div>
+
+      <div className="mt-4">
+        <Link 
+          to={`/service/${service.id}`}
+          className="block w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-xl font-semibold text-sm transition-colors duration-200 text-center"
+        >
+          {t.viewDetails}
+        </Link>
+      </div>
+    </div>
+  </motion.div>
+);
 
   if (loading) {
     return (

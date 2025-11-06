@@ -1,11 +1,7 @@
-// App.js
 import React from "react";
-import { Routes, Route } from "react-router-dom";
-
-// Import pages from the "pages" folder
-import Home from "../src/pages/Home";
+import { Routes, Route, Navigate } from "react-router-dom";
+import Home from "./pages/Home";
 import Hero from "./components/Hero";
-import JobList from "./components/Joblist";
 import JobCard from "./components/JobCard";
 import Navibar from "./components/Navibar";
 import AnimationWrapper from "./components/AnimationWrapper";
@@ -20,67 +16,86 @@ import ServiceDetail from "./components/ServiceDetails";
 import ServiceList from "./components/ServiceLists";
 import { VerificationProvider } from "./contexts/verificationCode";
 import VerificationForm from "./components/VerificationCodeForm";
-import JobDetails from "./components/JobDetails";
 import ForgotPassword from "./components/ForgotPassword";
 import ResetPassword from "./components/ResetPassword";
 import ClientDashboard from "./components/ClientsDashboard";
 import ServiceProviderDashboard from "./components/ServiceProvider";
 import { AuthProvider, useAuth } from "./contexts/authContext";
+import ProtectedRoute from "./components/ProtectRoute";
+import HomeDetails from "./components/HomeServiceDetails";
+import HomeserviceList from "./components/HomeServiceList";
 
-// Create a layout component that conditionally renders Navibar
-const AppLayout = () => {
+const PublicRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
-
-  // Show loading spinner while checking auth status
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+  if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  if (isAuthenticated) {
+    const user = JSON.parse(localStorage.getItem("userData") || localStorage.getItem("user") || "{}");
+    const dashboardRoute = determineDashboardRoute(user);
+    return <Navigate to={dashboardRoute} replace />;
   }
+  return children;
+};
+
+const determineDashboardRoute = (userData) => {
+  const userType = userData?.role || userData?.userType || userData?.type;
+  if (userType?.toLowerCase().includes("provider")) return "/provider/dashboard";
+  if (userType?.toLowerCase().includes("admin")) return "/admin-dashboard";
+  return "/client/dashboard";
+};
+
+const AppContent = () => {
+  const { loading } = useAuth();
+  if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
+
+  const currentPath = window.location.pathname;
+  const hideNavibarRoutes = ["/client/dashboard", "/provider/dashboard", "/admin-dashboard"];
+  const shouldShowNavibar = !hideNavibarRoutes.some((r) => currentPath.startsWith(r));
 
   return (
-    <div>
-      {/* Only show Navibar if user is NOT authenticated */}
-      {!isAuthenticated && <Navibar />}
-      
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/hero" element={<Hero />} />
-        <Route path="/joblist" element={<JobList />} />
-        <Route path="/job/:id" element={<JobDetails />} />
-        <Route path="/jobcard" element={<JobCard />} />
-        <Route path="/animations" element={<AnimationWrapper />} />
-        <Route path="/footer" element={<Footer />} />
-        <Route path="/signup" element={<SignUpForm />} />
-        <Route path="/Signin" element={<LoginForm />} />
-        <Route path="/service/:id" element={<ServiceDetail />} />
-        <Route path="/service" element={<ServiceList />} />
-        <Route path="/client/dashboard" element={<ClientDashboard />} />
-        <Route path="/provider/dashboard" element={<ServiceProviderDashboard />} />
-        <Route path="/verify" element={<VerificationForm />} />
-        <Route path="/contact" element={<ContactPage />} />
-        <Route path="/about" element={<AboutUs />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-      </Routes>
+    <div className="min-h-screen flex flex-col">
+      {shouldShowNavibar && <Navibar />}
+      <main className="flex-1">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/hero" element={<Hero />} />
+          <Route path="/joblist" element={<HomeserviceList />} />
+          <Route path="/job/:id" element={<HomeDetails/>} />
+          <Route path="/jobcard" element={<JobCard />} />
+          <Route path="/animations" element={<AnimationWrapper />} />
+          <Route path="/footer" element={<Footer />} />
+
+          <Route path="/signup" element={<PublicRoute><SignUpForm /></PublicRoute>} />
+          <Route path="/signin" element={<PublicRoute><LoginForm /></PublicRoute>} />
+
+          <Route path="/service/:id" element={<ServiceDetail />} />
+          <Route path="/services" element={<ServiceList />} />
+          <Route path="/verify" element={<VerificationForm />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/about" element={<AboutUs />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+
+          <Route path="/client/dashboard/*" element={<ProtectedRoute><ClientDashboard /></ProtectedRoute>} />
+          <Route path="/provider/dashboard/*" element={<ProtectedRoute><ServiceProviderDashboard /></ProtectedRoute>} />
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+      {shouldShowNavibar}
     </div>
   );
 };
 
-const App = () => {
-  return (
-    <ThemeProvider>
-      <LanguageProvider>
-        <AuthProvider>
-          <VerificationProvider>
-            <AppLayout />
-          </VerificationProvider>
-        </AuthProvider>
-      </LanguageProvider>
-    </ThemeProvider>
-  );
-};
+const App = () => (
+  <ThemeProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <VerificationProvider>
+          <AppContent />
+        </VerificationProvider>
+      </AuthProvider>
+    </LanguageProvider>
+  </ThemeProvider>
+);
 
 export default App;
